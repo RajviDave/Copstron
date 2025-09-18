@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'login.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -243,8 +244,15 @@ class _SignUpPageState extends State<SignUpPage> {
                             "Already have an account?",
                             style: TextStyle(color: Colors.black54),
                           ),
+
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
+                              );
+                            },
                             child: const Text(
                               'LOGIN',
                               style: TextStyle(
