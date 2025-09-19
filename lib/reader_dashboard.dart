@@ -10,7 +10,7 @@ class ReaderDashboard extends StatelessWidget {
     final AuthService authService = AuthService();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Leader Dashboard'),
+        title: const Text('Reader Dashboard'),
         backgroundColor: Colors.blueAccent, // A different color for distinction
         actions: [
           IconButton(
