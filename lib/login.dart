@@ -4,6 +4,9 @@ import 'signup.dart'; // Import for navigation
 import 'forgot_password_page.dart';
 import 'package:cp_final/service/auth.dart';
 import 'homepage.dart';
+import 'author_dashboard.dart';
+import 'reader_dashboard.dart';
+import 'package:cp_final/service/database.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -32,49 +35,66 @@ class _LoginPageState extends State<LoginPage> {
   // --- LOGIN FUNCTION ---
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
+      setState(() => _isLoading = true);
       try {
-        final email = emailController.text;
-        final password = passwordController.text;
+        final email = emailController.text.trim();
+        final password = passwordController.text.trim();
 
-        // Use Firebase to sign in the user
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
+        // Sign in the user using your AuthService
+        // Incorrect code causing the error
+        UserCredential? result = await _auth.signInWithEmailAndPassword(
+          email,
+          password,
         );
 
-        print('Login Successful! Email: $email');
+        if (result != null && result.user != null) {
+          // Fetch the user's role from Firestore using the UID
+          String? role = await DatabaseService(
+            uid: result.user!.uid,
+          ).getUserRole();
 
-        // On success, you would typically navigate to a home screen
-        // For now, we'll just show a success message
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Login successful!')));
+          // Navigate to the correct dashboard based on the fetched role
+          _navigateToDashboard(role);
         }
       } on FirebaseAuthException catch (e) {
-        print('Login failed: ${e.message}');
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Login failed: ${e.message}')));
-        }
+        // Handle specific Firebase errors (e.g., wrong password, user not found)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
       } catch (e) {
-        print('An unknown error occurred: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('An unknown error occurred: $e')),
-          );
-        }
+        // Handle any other errors
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unknown error occurred: $e')),
+        );
       } finally {
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
+          setState(() => _isLoading = false);
         }
+      }
+    }
+  }
+
+  void _navigateToDashboard(String? role) {
+    if (mounted) {
+      if (role == 'Author') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AuthorDashboard()),
+        );
+      } else if (role == 'Reader') {
+        // UPDATED: Changed to 'Reader'
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const ReaderDashboard()),
+        ); // UPDATED: Navigates to ReaderDashboard
+      } else {
+        // If the role is missing, show an error and sign the user out
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not determine user role. Please sign up again.',
+            ),
+          ),
+        );
+        _auth.signOut();
       }
     }
   }

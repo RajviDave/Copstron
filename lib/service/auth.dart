@@ -1,45 +1,86 @@
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cp_final/service/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // Sign in with email & password
+  Future<UserCredential?> signInWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      // Re-throw the exception so the UI can display the message
+      throw e;
+    }
+  }
+
+  // Register with email & password
+  Future<UserCredential?> createUserWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw e;
+    }
+  }
 
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
       // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-
-      // If the user cancels the process, googleUser will be null
-      if (googleUser == null) {
-        return null;
-      }
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final GoogleSignInAuthentication? googleAuth =
+          await googleUser?.authentication;
 
       // Create a new credential
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+      if (googleAuth?.accessToken != null && googleAuth?.idToken != null) {
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth?.accessToken,
+          idToken: googleAuth?.idToken,
+        );
 
-      // Once signed in, return the UserCredential
-      return await _auth.signInWithCredential(credential);
+        // Once signed in, return the UserCredential
+        UserCredential userCredential = await _auth.signInWithCredential(
+          credential,
+        );
+
+        // If it's a new user, also save their data to Firestore
+        if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+          await DatabaseService(uid: userCredential.user!.uid).updateUserData(
+            userCredential.user!.displayName ?? 'Google User',
+            userCredential.user!.email!,
+            'Reader', // Default role for Google sign-ups
+          );
+        }
+        return userCredential;
+      }
     } on FirebaseAuthException catch (e) {
-      print('Firebase Auth Exception: ${e.message}');
-      return null;
-    } catch (e) {
-      print('An unknown error occurred: $e');
-      return null;
+      throw e;
     }
+    return null;
   }
 
   // Sign out
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    try {
+      await GoogleSignIn().signOut();
+      await _auth.signOut();
+    } catch (e) {
+      print(e.toString());
+    }
   }
 }
