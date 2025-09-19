@@ -154,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // TODO: Handle forgot password logic
+                            // Navigator.push(context,MaterialPageRoute(builder: (context)=> ForgotPassword))
                           },
                           child: const Text(
                             'Forgot Password?',
