@@ -11,14 +11,12 @@ class AuthService {
     String password,
   ) async {
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      return await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      // Re-throw the exception so the UI can display the message
-      throw e;
+    } on FirebaseAuthException {
+      rethrow; // Re-throw the exception so the UI can display the message
     }
   }
 
@@ -28,32 +26,30 @@ class AuthService {
     String password,
   ) async {
     try {
-      UserCredential userCredential = await _auth
-          .createUserWithEmailAndPassword(email: email, password: password);
-      return userCredential;
-    } on FirebaseAuthException catch (e) {
-      throw e;
+      return await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException {
+      rethrow;
     }
   }
 
   // Sign in with Google
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return null; // User cancelled the sign-in
 
-      // Obtain the auth details from the request
       final GoogleSignInAuthentication? googleAuth =
-          await googleUser?.authentication;
+          await googleUser.authentication;
 
-      // Create a new credential
       if (googleAuth?.accessToken != null && googleAuth?.idToken != null) {
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth?.accessToken,
           idToken: googleAuth?.idToken,
         );
 
-        // Once signed in, return the UserCredential
         UserCredential userCredential = await _auth.signInWithCredential(
           credential,
         );
@@ -68,8 +64,8 @@ class AuthService {
         }
         return userCredential;
       }
-    } on FirebaseAuthException catch (e) {
-      throw e;
+    } on FirebaseAuthException {
+      rethrow;
     }
     return null;
   }

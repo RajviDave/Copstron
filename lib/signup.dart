@@ -1,8 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'login.dart';
+import 'package:cp_final/author_dashboard.dart';
+import 'package:cp_final/homepage.dart';
+import 'package:cp_final/login.dart';
+import 'package:cp_final/reader_dashboard.dart';
 import 'package:cp_final/service/auth.dart';
-import 'homepage.dart';
+import 'package:cp_final/service/database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -14,13 +17,12 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
   static const Color primaryColor = Color(0xFF59AC77);
-
   final TextEditingController namecontroller = TextEditingController();
   final TextEditingController passwordcontroller = TextEditingController();
   final TextEditingController emailcontroller = TextEditingController();
   final AuthService _auth = AuthService();
-
   bool _isLoading = false;
+  String _selectedRole = 'Author'; // Default role for email signup
 
   @override
   void dispose() {
@@ -30,54 +32,84 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  // --- REGISTRATION FUNCTION (NOW FIXED) ---
+  // Handles registration with Email and Password
   Future<void> _handleRegistration() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
+      setState(() => _isLoading = true);
       try {
-        final name = namecontroller.text;
-        final email = emailcontroller.text;
-        final password = passwordcontroller.text;
+        final email = emailcontroller.text.trim();
+        final password = passwordcontroller.text.trim();
+        final name = namecontroller.text.trim();
 
-        // --- THIS IS THE FIX ---
-        // The actual Firebase registration logic is now active.
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: email,
-          password: password,
+        UserCredential? result = await _auth.createUserWithEmailAndPassword(
+          email,
+          password,
         );
 
-        print('Registration Successful! Name: $name, Email: $email');
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sign up successful! User created in Firebase.'),
-            ),
-          );
+        if (result != null && result.user != null) {
+          await DatabaseService(
+            uid: result.user!.uid,
+          ).updateUserData(name, email, _selectedRole);
+          _navigateToDashboard(_selectedRole);
         }
       } on FirebaseAuthException catch (e) {
-        print('Registration failed: ${e.message}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration failed: ${e.message}')),
-          );
-        }
-      } catch (e) {
-        print('An unknown error occurred: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('An unknown error occurred: $e')),
+            SnackBar(content: Text(e.message ?? 'Sign up failed.')),
           );
         }
       } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // --- NEW: Handles Sign in with Google ---
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      UserCredential? result = await _auth.signInWithGoogle();
+      if (result != null && result.user != null) {
+        // Fetch the role from the database.
+        // The AuthService sets a default role of 'Reader' for new Google users.
+        String? role = await DatabaseService(
+          uid: result.user!.uid,
+        ).getUserRole();
+        _navigateToDashboard(role);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
+      }
+    } catch (e) {
+      // Handle case where user cancels sign-in
+      print('Google sign in cancelled or failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _navigateToDashboard(String? role) {
+    if (mounted) {
+      if (role == 'Author') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const AuthorDashboard()),
+        );
+      } else if (role == 'Reader') {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const ReaderDashboard()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not determine user role. Please try again.'),
+          ),
+        );
+        _auth.signOut();
       }
     }
   }
@@ -103,6 +135,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
+                      // ... Image and Title ...
                       Container(
                         height: 150,
                         decoration: BoxDecoration(
@@ -112,15 +145,7 @@ class _SignUpPageState extends State<SignUpPage> {
                               'https://images.unsplash.com/photo-1544947950-fa07a-98d237f?q=80&w=1974&auto=format&fit=crop',
                             ),
                             fit: BoxFit.cover,
-                            onError: _imageError,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
                         ),
                       ),
                       const SizedBox(height: 30),
@@ -133,40 +158,68 @@ class _SignUpPageState extends State<SignUpPage> {
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Start your journey with us!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
-                      ),
                       const SizedBox(height: 30),
+
+                      // --- Role Selection for Email Signup ---
+                      const Text(
+                        'Select Your Role (for email sign up)',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ToggleButtons(
+                        isSelected: [
+                          _selectedRole == 'Author',
+                          _selectedRole == 'Reader',
+                        ],
+                        onPressed: (index) {
+                          setState(() {
+                            _selectedRole = index == 0 ? 'Author' : 'Reader';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        selectedColor: Colors.white,
+                        fillColor: primaryColor,
+                        color: primaryColor,
+                        selectedBorderColor: primaryColor,
+                        borderColor: primaryColor,
+                        constraints: BoxConstraints(
+                          minHeight: 45.0,
+                          minWidth:
+                              (MediaQuery.of(context).size.width - 60) / 2,
+                        ),
+                        children: const [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Text('Author'),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Text('Reader'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // --- Email/Password Fields ---
                       _buildTextFormField(
                         hint: 'Full Name',
                         icon: Icons.person_outline,
                         controller: namecontroller,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your full name';
-                          }
-                          return null;
-                        },
+                        validator: (val) =>
+                            val!.isEmpty ? 'Enter your name' : null,
                       ),
                       const SizedBox(height: 16),
                       _buildTextFormField(
                         hint: 'Email Address',
                         icon: Icons.email_outlined,
                         controller: emailcontroller,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
+                        validator: (val) =>
+                            val!.isEmpty ? 'Enter an email' : null,
                       ),
                       const SizedBox(height: 16),
                       _buildTextFormField(
@@ -174,17 +227,13 @@ class _SignUpPageState extends State<SignUpPage> {
                         icon: Icons.lock_outline,
                         isPassword: true,
                         controller: passwordcontroller,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters long';
-                          }
-                          return null;
-                        },
+                        validator: (val) => val!.length < 6
+                            ? 'Enter a password 6+ chars long'
+                            : null,
                       ),
                       const SizedBox(height: 24),
+
+                      // --- Email Sign Up Button ---
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
@@ -192,7 +241,6 @@ class _SignUpPageState extends State<SignUpPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 5,
                         ),
                         onPressed: _isLoading ? null : _handleRegistration,
                         child: _isLoading
@@ -205,7 +253,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                 ),
                               )
                             : const Text(
-                                'SIGN UP',
+                                'SIGN UP WITH EMAIL',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -213,18 +261,20 @@ class _SignUpPageState extends State<SignUpPage> {
                                 ),
                               ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
+
+                      // --- "OR" Divider ---
                       _buildDivider(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
+
+                      // --- Google Sign In Button ---
                       OutlinedButton.icon(
                         icon: Image.network(
                           'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
                           height: 20,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.login),
                         ),
                         label: const Text(
-                          'Log in with Google',
+                          'Sign Up with Google',
                           style: TextStyle(
                             color: Colors.black87,
                             fontWeight: FontWeight.w600,
@@ -237,54 +287,11 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           side: BorderSide(color: Colors.grey.shade400),
                         ),
-                        onPressed: () async {
-                          setState(() {
-                            _isLoading = true; // Show a loading indicator
-                          });
-
-                          try {
-                            UserCredential? userCredential = await _auth
-                                .signInWithGoogle();
-                            if (userCredential != null) {
-                              // Navigate to the HomePage on successful login
-                              if (mounted) {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => const HomePage(),
-                                  ),
-                                );
-                              }
-                            } else {
-                              // Handle the case where the user cancelled the sign-in
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Google sign-in was cancelled.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            // Handle any other errors
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('An error occurred: $e'),
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isLoading = false; // Hide loading indicator
-                              });
-                            }
-                          }
-                        },
+                        onPressed: _isLoading ? null : _handleGoogleSignIn,
                       ),
                       const Spacer(),
+
+                      // --- Navigate to Login Page ---
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -292,15 +299,13 @@ class _SignUpPageState extends State<SignUpPage> {
                             "Already have an account?",
                             style: TextStyle(color: Colors.black54),
                           ),
-
                           TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginPage(),
+                            onPressed: () =>
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginPage(),
+                                  ),
                                 ),
-                              );
-                            },
                             child: const Text(
                               'LOGIN',
                               style: TextStyle(
@@ -319,6 +324,20 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- HELPER WIDGETS ---
+  Widget _buildDivider() {
+    return const Row(
+      children: [
+        Expanded(child: Divider(thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text('OR', style: TextStyle(color: Colors.black45)),
+        ),
+        Expanded(child: Divider(thickness: 1)),
+      ],
     );
   }
 
@@ -354,33 +373,7 @@ class _SignUpPageState extends State<SignUpPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        hintStyle: TextStyle(color: Colors.grey[400]),
       ),
     );
-  }
-
-  Widget _buildDivider() {
-    return const Row(
-      children: [
-        Expanded(child: Divider(thickness: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text('OR', style: TextStyle(color: Colors.black45)),
-        ),
-        Expanded(child: Divider(thickness: 1)),
-      ],
-    );
-  }
-
-  static void _imageError(Object error, StackTrace? stackTrace) {
-    print("Image failed to load: $error");
   }
 }

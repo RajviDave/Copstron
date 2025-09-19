@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'signup.dart'; // Import for navigation
-import 'forgot_password_page.dart';
+import 'package:cp_final/author_dashboard.dart';
+import 'package:cp_final/forgot_password_page.dart';
+import 'package:cp_final/reader_dashboard.dart';
 import 'package:cp_final/service/auth.dart';
-import 'homepage.dart';
-import 'author_dashboard.dart';
-import 'reader_dashboard.dart';
 import 'package:cp_final/service/database.dart';
+import 'package:cp_final/signup.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -17,12 +16,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  static const Color primaryColor = Color(0xFF59AC77); // Same color as signup
-
+  static const Color primaryColor = Color(0xFF59AC77);
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _auth = AuthService();
-
   bool _isLoading = false;
 
   @override
@@ -32,44 +29,59 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // --- LOGIN FUNCTION ---
-  Future<void> _handleLogin() async {
+  // Handles Login with Email and Password
+  Future<void> _handleEmailLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
         final email = emailController.text.trim();
         final password = passwordController.text.trim();
 
-        // Sign in the user using your AuthService
-        // Incorrect code causing the error
         UserCredential? result = await _auth.signInWithEmailAndPassword(
           email,
           password,
         );
 
         if (result != null && result.user != null) {
-          // Fetch the user's role from Firestore using the UID
           String? role = await DatabaseService(
             uid: result.user!.uid,
           ).getUserRole();
-
-          // Navigate to the correct dashboard based on the fetched role
           _navigateToDashboard(role);
         }
       } on FirebaseAuthException catch (e) {
-        // Handle specific Firebase errors (e.g., wrong password, user not found)
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Handles Sign in with Google
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      UserCredential? result = await _auth.signInWithGoogle();
+      if (result != null && result.user != null) {
+        String? role = await DatabaseService(
+          uid: result.user!.uid,
+        ).getUserRole();
+        _navigateToDashboard(role);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed.')));
-      } catch (e) {
-        // Handle any other errors
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unknown error occurred: $e')),
-        );
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+      }
+    } catch (e) {
+      print('Google sign in cancelled or failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -81,12 +93,10 @@ class _LoginPageState extends State<LoginPage> {
           MaterialPageRoute(builder: (context) => const AuthorDashboard()),
         );
       } else if (role == 'Reader') {
-        // UPDATED: Changed to 'Reader'
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const ReaderDashboard()),
-        ); // UPDATED: Navigates to ReaderDashboard
+        );
       } else {
-        // If the role is missing, show an error and sign the user out
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -120,8 +130,19 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      // You can add an image here if you like, similar to the signup page
-                      const SizedBox(height: 40),
+                      Container(
+                        height: 150,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          image: const DecorationImage(
+                            image: NetworkImage(
+                              'https://images.unsplash.com/photo-1544947950-fa07a-98d237f?q=80&w=1974&auto=format&fit=crop',
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
                       const Text(
                         'Welcome Back!',
                         textAlign: TextAlign.center,
@@ -131,72 +152,39 @@ class _LoginPageState extends State<LoginPage> {
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Sign in to continue',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.black54),
-                      ),
-                      const SizedBox(height: 40),
-
-                      // Email Text Form Field
+                      const SizedBox(height: 30),
                       _buildTextFormField(
                         hint: 'Email Address',
                         icon: Icons.email_outlined,
                         controller: emailController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(
-                            r"^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-                          ).hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
+                        validator: (val) =>
+                            val!.isEmpty ? 'Enter an email' : null,
                       ),
                       const SizedBox(height: 16),
-
-                      // Password Text Form Field
                       _buildTextFormField(
                         hint: 'Password',
                         icon: Icons.lock_outline,
                         isPassword: true,
                         controller: passwordController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          return null;
-                        },
+                        validator: (val) => val!.length < 6
+                            ? 'Enter a password 6+ chars long'
+                            : null,
                       ),
-                      const SizedBox(height: 8),
-
-                      // Forgot Password
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ForgotPasswordPage(),
-                              ),
-                            );
-                          },
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPasswordPage(),
+                            ),
+                          ),
                           child: const Text(
                             'Forgot Password?',
-                            style: TextStyle(
-                              color: primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(color: primaryColor),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      // Sign In Button
+                      const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryColor,
@@ -204,9 +192,8 @@ class _LoginPageState extends State<LoginPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 5,
                         ),
-                        onPressed: _isLoading ? null : _handleLogin,
+                        onPressed: _isLoading ? null : _handleEmailLogin,
                         child: _isLoading
                             ? const SizedBox(
                                 height: 20,
@@ -217,7 +204,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               )
                             : const Text(
-                                'SIGN IN',
+                                'SIGN IN WITH EMAIL',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -225,17 +212,13 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       _buildDivider(),
-                      const SizedBox(height: 24),
-
-                      // Google Login Button
+                      const SizedBox(height: 20),
                       OutlinedButton.icon(
                         icon: Image.network(
                           'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
                           height: 20,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.login),
                         ),
                         label: const Text(
                           'Log in with Google',
@@ -251,56 +234,9 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           side: BorderSide(color: Colors.grey.shade400),
                         ),
-                        onPressed: () async {
-                          setState(() {
-                            _isLoading = true; // Show a loading indicator
-                          });
-
-                          try {
-                            UserCredential? userCredential = await _auth
-                                .signInWithGoogle();
-                            if (userCredential != null) {
-                              // Navigate to the HomePage on successful login
-                              if (mounted) {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => const HomePage(),
-                                  ),
-                                );
-                              }
-                            } else {
-                              // Handle the case where the user cancelled the sign-in
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Google sign-in was cancelled.',
-                                    ),
-                                  ),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                            // Handle any other errors
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('An error occurred: $e'),
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isLoading = false; // Hide loading indicator
-                              });
-                            }
-                          }
-                        },
+                        onPressed: _isLoading ? null : _handleGoogleSignIn,
                       ),
                       const Spacer(),
-
-                      // Sign Up Link
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -309,14 +245,12 @@ class _LoginPageState extends State<LoginPage> {
                             style: TextStyle(color: Colors.black54),
                           ),
                           TextButton(
-                            onPressed: () {
-                              // Navigate to the SignUpPage
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (context) => const SignUpPage(),
+                            onPressed: () =>
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => const SignUpPage(),
+                                  ),
                                 ),
-                              );
-                            },
                             child: const Text(
                               'SIGN UP',
                               style: TextStyle(
@@ -338,7 +272,19 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // Reusable helper function for text form fields
+  Widget _buildDivider() {
+    return const Row(
+      children: [
+        Expanded(child: Divider(thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text('OR', style: TextStyle(color: Colors.black45)),
+        ),
+        Expanded(child: Divider(thickness: 1)),
+      ],
+    );
+  }
+
   Widget _buildTextFormField({
     required String hint,
     required IconData icon,
@@ -371,30 +317,7 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
-        ),
-        hintStyle: TextStyle(color: Colors.grey[400]),
       ),
-    );
-  }
-
-  // Reusable helper function for the "OR" divider
-  Widget _buildDivider() {
-    return const Row(
-      children: [
-        Expanded(child: Divider(thickness: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text('OR', style: TextStyle(color: Colors.black45)),
-        ),
-        Expanded(child: Divider(thickness: 1)),
-      ],
     );
   }
 }
