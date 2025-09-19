@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login.dart';
+import 'package:cp_final/service/auth.dart';
+import 'homepage.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key}) : super(key: key);
@@ -16,6 +18,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController namecontroller = TextEditingController();
   final TextEditingController passwordcontroller = TextEditingController();
   final TextEditingController emailcontroller = TextEditingController();
+  final AuthService _auth = AuthService();
 
   bool _isLoading = false;
 
@@ -234,7 +237,52 @@ class _SignUpPageState extends State<SignUpPage> {
                           ),
                           side: BorderSide(color: Colors.grey.shade400),
                         ),
-                        onPressed: () {},
+                        onPressed: () async {
+                          setState(() {
+                            _isLoading = true; // Show a loading indicator
+                          });
+
+                          try {
+                            UserCredential? userCredential = await _auth
+                                .signInWithGoogle();
+                            if (userCredential != null) {
+                              // Navigate to the HomePage on successful login
+                              if (mounted) {
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                    builder: (context) => const HomePage(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              // Handle the case where the user cancelled the sign-in
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Google sign-in was cancelled.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            // Handle any other errors
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('An error occurred: $e'),
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _isLoading = false; // Hide loading indicator
+                              });
+                            }
+                          }
+                        },
                       ),
                       const Spacer(),
                       Row(
