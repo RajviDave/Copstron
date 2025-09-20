@@ -1,127 +1,111 @@
+import 'package:cp_final/announcement_page.dart';
+import 'package:cp_final/book_talk_page.dart';
+import 'package:cp_final/publish_book_page.dart';
 import 'package:flutter/material.dart';
 
-class CreatePostPage extends StatefulWidget {
+class CreatePostPage extends StatelessWidget {
   const CreatePostPage({Key? key}) : super(key: key);
 
   @override
-  State<CreatePostPage> createState() => _CreatePostPageState();
-}
-
-class _CreatePostPageState extends State<CreatePostPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _publishPost() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-
-      // Simulate a network call to save the post
-      await Future.delayed(const Duration(seconds: 2));
-
-      final title = _titleController.text;
-      final content = _contentController.text;
-
-      print('Publishing Post -- Title: $title, Content: $content');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post published successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Go back to the dashboard after publishing
-        Navigator.of(context).pop();
-      }
-
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    const Color primaryColor = Color(0xFF59AC77);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create a New Post'),
-        backgroundColor: const Color(0xFF59AC77),
+        title: const Text('Create New Content'),
+        backgroundColor: primaryColor,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          _buildOptionCard(
+            context: context,
+            icon: Icons.book,
+            title: 'Publish Book Post',
+            subtitle: 'Share a new book or an update on an existing one.',
+            color: primaryColor,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const PublishBookPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildOptionCard(
+            context: context,
+            icon: Icons.campaign,
+            title: 'Announcement',
+            subtitle: 'Post a general announcement to all your readers.',
+            color: Colors.orange,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AnnouncementPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildOptionCard(
+            context: context,
+            icon: Icons.mic,
+            title: 'Book Talk',
+            subtitle: 'Schedule a new live event or book talk session.',
+            color: Colors.blue,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const BookTalkPage()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper widget to build the tappable option cards for a consistent look
+  Widget _buildOptionCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 4.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Row(
             children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Post Title',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a title for your post.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _contentController,
-                decoration: InputDecoration(
-                  labelText: 'Your Content',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                maxLines: 10,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter some content for your post.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF59AC77),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: _isLoading ? null : _publishPost,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 3,
-                        ),
-                      )
-                    : const Text(
-                        'PUBLISH POST',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+              Icon(icon, size: 40, color: color),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.grey),
             ],
           ),
         ),
