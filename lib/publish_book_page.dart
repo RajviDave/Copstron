@@ -34,8 +34,6 @@ class _PublishBookPageState extends State<PublishBookPage> {
     'Biography',
   ];
 
-  // get Timestamp => null; // FIX: REMOVED THIS CRITICAL ERROR LINE
-
   @override
   void dispose() {
     _bookNameController.dispose();

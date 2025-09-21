@@ -50,6 +50,7 @@ class _BookTalkPageState extends State<BookTalkPage> {
     if (picked != null) setState(() => _selectedTime = picked);
   }
 
+  // --- THIS IS THE FINAL, CORRECTED FUNCTION ---
   Future<void> _scheduleTalk() async {
     if (_formKey.currentState!.validate() &&
         _selectedDate != null &&
@@ -81,6 +82,7 @@ class _BookTalkPageState extends State<BookTalkPage> {
 
       try {
         await DatabaseService(uid: user.uid).addContent(contentData);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -116,7 +118,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ... THE REST OF YOUR BUILD METHOD IS PERFECTLY FINE AND DOES NOT NEED TO CHANGE ...
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schedule a Book Talk'),

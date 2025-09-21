@@ -1,6 +1,8 @@
 import 'dart:io';
-import 'package:cp_final/service/database.dart'; // <-- CORRECTED PATH
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cp_final/service/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -23,6 +25,27 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
     super.dispose();
   }
 
+  Future<String> _uploadImage(File imageFile) async {
+    try {
+      // Create a reference to the location where you want to upload the file
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference storageReference = FirebaseStorage.instance
+          .ref()
+          .child('announcement_images/$fileName.jpg');
+      
+      // Upload the file
+      UploadTask uploadTask = storageReference.putFile(imageFile);
+      TaskSnapshot storageTaskSnapshot = await uploadTask;
+      
+      // Get the download URL
+      String downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      print('Error uploading image: $e');
+      rethrow;
+    }
+  }
+
   Future<void> _pickImage() async {
     final XFile? selectedImage = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -36,12 +59,14 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
 
   Future<void> _postAnnouncement() async {
     if (_textController.text.isEmpty && _imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please write a message or attach an image.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please write a message or attach an image.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -49,17 +74,56 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be logged in to post an announcement.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
-    final contentData = {
-      'contentType': 'Announcement',
-      'text': _textController.text,
-      'imageUrl': null, // Placeholder for uploaded image URL
-    };
-
     try {
-      await DatabaseService(uid: user.uid).addContent(contentData);
+      // Get user data to ensure we have the author's name
+      final database = DatabaseService(uid: user.uid);
+      final userData = await database.getUserData();
+      final authorName = userData?['name'] ?? 'Anonymous Author';
+
+      final contentData = {
+        'contentType': 'Announcement',
+        'text': _textController.text,
+        'imageUrl': null, // Will be updated after image upload if needed
+        'authorId': user.uid,
+        'authorName': authorName,
+        'createdAt': FieldValue.serverTimestamp(),
+        'likes': 0,
+        'comments': [],
+      };
+      
+      // If there's an image, upload it first
+      if (_imageFile != null) {
+        try {
+          final imageUrl = await _uploadImage(_imageFile!);
+          contentData['imageUrl'] = imageUrl;
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to upload image: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+      
+      // Add the announcement to the database
+      await database.addContent(contentData);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -70,10 +134,11 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      print('Error in _postAnnouncement: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error posting announcement: $e'),
+            content: Text('Error posting announcement: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );

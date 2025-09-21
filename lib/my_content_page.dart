@@ -154,7 +154,42 @@ class _AnnouncementCard extends StatelessWidget {
     final dateString = timestamp != null
         ? DateFormat('MMMM d, yyyy \'at\' h:mm a').format(timestamp.toDate())
         : 'No date';
-    return Card(/* ... Similar beautiful card design for announcements ... */);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.campaign, color: Colors.orange),
+                const SizedBox(width: 8),
+                const Text(
+                  "ANNOUNCEMENT",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            // We check if the text is not null and not empty before showing it
+            if (data['text'] != null && data['text'].isNotEmpty)
+              Text(data['text'], style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 12),
+            Text(
+              dateString,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -164,16 +199,83 @@ class _BookTalkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timestamp = data['createdAt'] as Timestamp?;
-    final dateString = timestamp != null
-        ? DateFormat('MMMM d, yyyy').format(timestamp.toDate())
-        : 'No date';
-    final eventDate = data['date'] != null
+    final eventTimestamp = data['eventTimestamp'] as Timestamp?;
+    final eventDateString = eventTimestamp != null
         ? DateFormat(
-            'MMMM d, yyyy',
-          ).format((data['date'] as Timestamp).toDate())
-        : 'TBA';
+            'MMMM d, yyyy \'at\' h:mm a',
+          ).format(eventTimestamp.toDate())
+        : 'Date & Time TBA';
 
-    return Card(/* ... Similar beautiful card design for book talks ... */);
+    final eventType = data['eventType'] ?? 'Event';
+    final isOnline = eventType == 'Online';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.mic, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text(
+                  "BOOK TALK",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 20),
+            Text(
+              data['bookName'] ?? 'No Title',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'With: ${data['authors'] ?? 'TBA'}',
+              style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  isOnline ? Icons.link : Icons.location_on,
+                  color: Colors.grey.shade600,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    data['location'] ?? 'Location TBA',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  color: Colors.grey.shade600,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  eventDateString,
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

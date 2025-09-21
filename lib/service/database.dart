@@ -4,49 +4,76 @@ class DatabaseService {
   final String? uid;
   DatabaseService({this.uid});
 
-  // Reference to the main users collection
-  final CollectionReference userCollection = FirebaseFirestore.instance
-      .collection('users');
+  final CollectionReference userCollection = FirebaseFirestore.instance.collection('users');
+  final CollectionReference contentCollection = FirebaseFirestore.instance.collection('content');
+  final CollectionReference booksCollection = FirebaseFirestore.instance.collection('books');
 
-  // Reference to the content subcollection for a specific user
-  CollectionReference get contentCollection =>
-      userCollection.doc(uid).collection('content');
-
-  // Update/Create user data (for role, name, email)
   Future<void> updateUserData(String name, String email, String role) async {
     return await userCollection.doc(uid).set({
       'name': name,
       'email': email,
       'role': role,
-    });
+    }, SetOptions(merge: true));
   }
 
-  // Get user role from Firestore
-  Future<String?> getUserRole() async {
+  Future<Map<String, dynamic>?> getUserData() async {
     try {
       DocumentSnapshot doc = await userCollection.doc(uid).get();
       if (doc.exists) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        return data['role'];
+        return doc.data() as Map<String, dynamic>;
       }
       return null;
     } catch (e) {
-      print(e.toString());
+      print('Error getting user data: $e');
       return null;
     }
   }
 
-  // --- NEW: Add a piece of content (Book, Announcement, etc.) ---
-  Future<DocumentReference<Object?>> addContent(
-    Map<String, dynamic> contentData,
-  ) async {
-    // Add a server-side timestamp for ordering
-    contentData['createdAt'] = FieldValue.serverTimestamp();
-    return await contentCollection.add(contentData);
+  Future<String?> getUserRole() async {
+    try {
+      final userData = await getUserData();
+      return userData?['role'];
+    } catch (e) {
+      print('Error getting user role: $e');
+      return null;
+    }
   }
 
-  // --- NEW: Get a stream of the author's content ---
+  Future<void> addContent(Map<String, dynamic> contentData) async {
+    try {
+      contentData['authorId'] = uid;
+      contentData['createdAt'] = FieldValue.serverTimestamp();
+      
+      // Add to the global content collection
+      await contentCollection.add(contentData);
+      
+      // Also add to user's content subcollection for easy querying
+      await userCollection.doc(uid).collection('content').add(contentData);
+    } catch (e) {
+      print('Error adding content: $e');
+      rethrow;
+    }
+  }
+
   Stream<QuerySnapshot> getContentStream() {
-    return contentCollection.orderBy('createdAt', descending: true).snapshots();
+    return contentCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get all books by this author
+  Stream<QuerySnapshot> getAuthorBooksStream() {
+    return booksCollection
+        .where('authorId', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get count of books by this author
+  Stream<int> getBookCountStream() {
+    return booksCollection
+        .where('authorId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
 }
