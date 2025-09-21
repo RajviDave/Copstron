@@ -22,7 +22,14 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController emailcontroller = TextEditingController();
   final AuthService _auth = AuthService();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String _selectedRole = 'Author'; // Default role for email signup
+  
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
+  }
 
   @override
   void dispose() {
@@ -222,11 +229,30 @@ class _SignUpPageState extends State<SignUpPage> {
                             val!.isEmpty ? 'Enter an email' : null,
                       ),
                       const SizedBox(height: 16),
-                      _buildTextFormField(
-                        hint: 'Password',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
+                      TextFormField(
                         controller: passwordcontroller,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              color: Colors.grey,
+                            ),
+                            onPressed: _togglePasswordVisibility,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                            horizontal: 20,
+                          ),
+                        ),
                         validator: (val) => val!.length < 6
                             ? 'Enter a password 6+ chars long'
                             : null,
@@ -268,26 +294,30 @@ class _SignUpPageState extends State<SignUpPage> {
                       const SizedBox(height: 20),
 
                       // --- Google Sign In Button ---
-                      OutlinedButton.icon(
-                        icon: Image.network(
-                          'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
-                          height: 20,
-                        ),
-                        label: const Text(
-                          'Sign Up with Google',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      OutlinedButton(
+                        onPressed: _isLoading ? null : _handleGoogleSignIn,
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          side: BorderSide(color: Colors.grey.shade400),
+                          side: const BorderSide(color: Colors.grey, width: 1),
                         ),
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.network(
+                              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
+                              height: 20,
+                              width: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Sign up with Google',
+                              style: TextStyle(color: Colors.black87, fontSize: 16),
+                            ),
+                          ],
+                        ),
                       ),
                       const Spacer(),
 

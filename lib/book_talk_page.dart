@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cp_final/service/database.dart'; // <-- CORRECTED PATH
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // For formatting date and time
+import 'package:intl/intl.dart';
 
 class BookTalkPage extends StatefulWidget {
   const BookTalkPage({Key? key}) : super(key: key);
@@ -12,16 +15,13 @@ class _BookTalkPageState extends State<BookTalkPage> {
   final _formKey = GlobalKey<FormState>();
   static const Color primaryColor = Colors.blue;
 
-  // Controllers for text fields
   final _bookNameController = TextEditingController();
   final _authorsController = TextEditingController();
-  final _locationController =
-      TextEditingController(); // Used for both venue and link
+  final _locationController = TextEditingController();
 
-  // State variables for other inputs
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  bool _isOnlineEvent = false; // false = Physical Venue, true = Online Meet
+  bool _isOnlineEvent = false;
   bool _isLoading = false;
 
   @override
@@ -32,7 +32,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
     super.dispose();
   }
 
-  // Function to show the date picker
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -40,59 +39,79 @@ class _BookTalkPageState extends State<BookTalkPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  // Function to show the time picker
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime ?? TimeOfDay.now(),
+      initialTime: TimeOfDay.now(),
     );
-    if (picked != null && picked != _selectedTime) {
-      setState(() {
-        _selectedTime = picked;
-      });
-    }
+    if (picked != null) setState(() => _selectedTime = picked);
   }
 
-  // Function to handle form submission
   Future<void> _scheduleTalk() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() &&
+        _selectedDate != null &&
+        _selectedTime != null) {
       setState(() => _isLoading = true);
 
-      // Simulate network call to save the event
-      await Future.delayed(const Duration(seconds: 2));
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      // Collect all the data
-      final eventData = {
+      final DateTime finalDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+
+      final contentData = {
+        'contentType': 'BookTalk',
         'bookName': _bookNameController.text,
         'authors': _authorsController.text,
         'eventType': _isOnlineEvent ? 'Online' : 'Physical',
         'location': _locationController.text,
-        'date': _selectedDate != null
-            ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
-            : null,
-        'time': _selectedTime?.format(context),
+        'eventTimestamp': Timestamp.fromDate(finalDateTime),
       };
 
-      print('Scheduling Book Talk with data: $eventData');
+      try {
+        await DatabaseService(uid: user.uid).addContent(contentData);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Book talk scheduled successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(); // Go back after success
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Book talk scheduled successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('An error occurred: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
-
-      setState(() => _isLoading = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields, including date and time.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -120,15 +139,10 @@ class _BookTalkPageState extends State<BookTalkPage> {
                 label: 'Author(s) & Co-Author(s)',
               ),
               const SizedBox(height: 20),
-
-              // Location Type Toggle
               ToggleButtons(
                 isSelected: [!_isOnlineEvent, _isOnlineEvent],
-                onPressed: (index) {
-                  setState(() {
-                    _isOnlineEvent = index == 1;
-                  });
-                },
+                onPressed: (index) =>
+                    setState(() => _isOnlineEvent = index == 1),
                 borderRadius: BorderRadius.circular(12),
                 selectedColor: Colors.white,
                 fillColor: primaryColor,
@@ -151,8 +165,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
                 ],
               ),
               const SizedBox(height: 20),
-
-              // Conditional Location Input Field
               _buildTextFormField(
                 controller: _locationController,
                 label: _isOnlineEvent
@@ -161,8 +173,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
                 icon: _isOnlineEvent ? Icons.link : Icons.location_on_outlined,
               ),
               const SizedBox(height: 20),
-
-              // Date and Time Pickers
               Row(
                 children: [
                   Expanded(
@@ -187,8 +197,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
                 ],
               ),
               const SizedBox(height: 30),
-
-              // Schedule Button
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
@@ -223,7 +231,6 @@ class _BookTalkPageState extends State<BookTalkPage> {
     );
   }
 
-  // Helper for text fields
   TextFormField _buildTextFormField({
     required TextEditingController controller,
     required String label,
@@ -236,16 +243,11 @@ class _BookTalkPageState extends State<BookTalkPage> {
         prefixIcon: icon != null ? Icon(icon, color: primaryColor) : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'This field cannot be empty.';
-        }
-        return null;
-      },
+      validator: (value) =>
+          value == null || value.isEmpty ? 'This field cannot be empty.' : null,
     );
   }
 
-  // Helper for date/time picker tiles
   Widget _buildPickerTile({
     required IconData icon,
     required String label,

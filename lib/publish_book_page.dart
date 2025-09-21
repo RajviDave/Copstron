@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // FIX 1: ADDED THIS IMPORT
+import 'package:cp_final/service/database.dart'; // FIX 2: CORRECTED PATH
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // A package for date formatting
+import 'package:intl/intl.dart';
 
 class PublishBookPage extends StatefulWidget {
   const PublishBookPage({Key? key}) : super(key: key);
@@ -12,12 +15,10 @@ class _PublishBookPageState extends State<PublishBookPage> {
   final _formKey = GlobalKey<FormState>();
   static const Color primaryColor = Color(0xFF59AC77);
 
-  // Controllers for text fields
   final _bookNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _publisherController = TextEditingController();
 
-  // State variables for other inputs
   DateTime? _selectedDate;
   String? _selectedGenre;
   bool _isLoading = false;
@@ -33,6 +34,8 @@ class _PublishBookPageState extends State<PublishBookPage> {
     'Biography',
   ];
 
+  // get Timestamp => null; // FIX 3: REMOVED THIS INCORRECT LINE
+
   @override
   void dispose() {
     _bookNameController.dispose();
@@ -41,7 +44,6 @@ class _PublishBookPageState extends State<PublishBookPage> {
     super.dispose();
   }
 
-  // Function to show the date picker
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -56,27 +58,29 @@ class _PublishBookPageState extends State<PublishBookPage> {
     }
   }
 
-  // Function to handle form submission
   Future<void> _submitForm(String status) async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Simulate network call
-      await Future.delayed(const Duration(seconds: 2));
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-      // Collect all the data
       final bookData = {
+        'contentType': 'Book',
         'name': _bookNameController.text,
         'description': _descriptionController.text,
         'publisher': _publisherController.text,
         'genre': _selectedGenre,
         'publishDate': _selectedDate != null
-            ? DateFormat('yyyy-MM-dd').format(_selectedDate!)
+            ? Timestamp.fromDate(_selectedDate!)
             : null,
-        'status': status, // 'Published' or 'Draft'
+        'status': status,
       };
 
-      print('Saving book with data: $bookData');
+      await DatabaseService(uid: user.uid).addContent(bookData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -85,7 +89,7 @@ class _PublishBookPageState extends State<PublishBookPage> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.of(context).pop(); // Go back after success
+        Navigator.of(context).pop();
       }
 
       setState(() => _isLoading = false);
@@ -106,14 +110,11 @@ class _PublishBookPageState extends State<PublishBookPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Book Name
               _buildTextFormField(
                 controller: _bookNameController,
                 label: 'Name of Book',
               ),
               const SizedBox(height: 20),
-
-              // Upload Photo Button
               OutlinedButton.icon(
                 icon: const Icon(
                   Icons.cloud_upload_outlined,
@@ -131,27 +132,21 @@ class _PublishBookPageState extends State<PublishBookPage> {
                   ),
                 ),
                 onPressed: () {
-                  // TODO: Implement image picking logic
+                  // TODO: Implement image picking
                 },
               ),
               const SizedBox(height: 20),
-
-              // Description
               _buildTextFormField(
                 controller: _descriptionController,
                 label: 'Description of Book',
                 maxLines: 5,
               ),
               const SizedBox(height: 20),
-
-              // Publisher House
               _buildTextFormField(
                 controller: _publisherController,
                 label: 'Publisher House',
               ),
               const SizedBox(height: 20),
-
-              // Genre Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedGenre,
                 decoration: InputDecoration(
@@ -166,17 +161,12 @@ class _PublishBookPageState extends State<PublishBookPage> {
                     child: Text(genre),
                   );
                 }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedGenre = newValue;
-                  });
-                },
+                onChanged: (newValue) =>
+                    setState(() => _selectedGenre = newValue),
                 validator: (value) =>
                     value == null ? 'Please select a genre' : null,
               ),
               const SizedBox(height: 20),
-
-              // Date Picker
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
@@ -195,11 +185,8 @@ class _PublishBookPageState extends State<PublishBookPage> {
                 onTap: () => _selectDate(context),
               ),
               const SizedBox(height: 30),
-
-              // Action Buttons
               Row(
                 children: [
-                  // Save as Draft Button
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -217,7 +204,6 @@ class _PublishBookPageState extends State<PublishBookPage> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Publish Button
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -257,7 +243,6 @@ class _PublishBookPageState extends State<PublishBookPage> {
     );
   }
 
-  // Helper widget for consistent text field styling
   TextFormField _buildTextFormField({
     required TextEditingController controller,
     required String label,
