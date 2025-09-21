@@ -46,34 +46,43 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
     }
 
     setState(() => _isLoading = true);
-
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() => _isLoading = false);
       return;
     }
 
-    // In a real app, you would upload _imageFile to Firebase Storage
-    // and get a downloadURL to save here.
     final contentData = {
       'contentType': 'Announcement',
       'text': _textController.text,
       'imageUrl': null, // Placeholder for uploaded image URL
     };
 
-    await DatabaseService(uid: user.uid).addContent(contentData);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Announcement posted successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.of(context).pop();
+    try {
+      await DatabaseService(uid: user.uid).addContent(contentData);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Announcement posted successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error posting announcement: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    setState(() => _isLoading = false);
   }
 
   @override
