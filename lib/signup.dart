@@ -24,7 +24,7 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String _selectedRole = 'Author'; // Default role for email signup
-  
+
   void _togglePasswordVisibility() {
     setState(() {
       _obscurePassword = !_obscurePassword;
@@ -237,7 +237,9 @@ class _SignUpPageState extends State<SignUpPage> {
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: Colors.grey,
                             ),
                             onPressed: _togglePasswordVisibility,
@@ -297,7 +299,10 @@ class _SignUpPageState extends State<SignUpPage> {
                       OutlinedButton(
                         onPressed: _isLoading ? null : _handleGoogleSignIn,
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -308,13 +313,16 @@ class _SignUpPageState extends State<SignUpPage> {
                           children: [
                             Image.network(
                               'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-                              height: 20,
-                              width: 20,
+                              height: 10,
+                              width: 10,
                             ),
                             const SizedBox(width: 12),
                             const Text(
                               'Sign up with Google',
-                              style: TextStyle(color: Colors.black87, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),

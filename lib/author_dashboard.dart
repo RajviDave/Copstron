@@ -1,8 +1,6 @@
 import 'package:cp_final/create_post_page.dart';
-import 'package:cp_final/login.dart';
 import 'package:cp_final/my_content_page.dart';
 import 'package:cp_final/profile_page.dart';
-import 'package:cp_final/service/auth.dart';
 import 'package:flutter/material.dart';
 
 class AuthorDashboard extends StatefulWidget {
