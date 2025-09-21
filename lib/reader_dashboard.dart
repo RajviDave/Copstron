@@ -23,7 +23,7 @@ class _ReaderDashboardState extends State<ReaderDashboard> {
     const ExploreReader(),
     const LibraryReader(),
     const EventsReader(),
-    const ProfileReader(),
+    const ProfileReader(), // This is now the correct ProfileReader from reader/profile_reader.dart
   ];
 
   void _onItemTapped(int index) {
@@ -75,48 +75,4 @@ class _ReaderDashboardState extends State<ReaderDashboard> {
   }
 }
 
-// Placeholder pages - these will be implemented in separate files
-class HomeReader extends StatelessWidget {
-  const HomeReader({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Home - Your personalized feed'));
-  }
-}
-
-class ExploreReader extends StatelessWidget {
-  const ExploreReader({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Explore - Discover new books and authors'));
-  }
-}
-
-class LibraryReader extends StatelessWidget {
-  const LibraryReader({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Library - Your saved books and lists'));
-  }
-}
-
-class EventsReader extends StatelessWidget {
-  const EventsReader({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Events - Upcoming book events and talks'));
-  }
-}
-
-class ProfileReader extends StatelessWidget {
-  const ProfileReader({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Profile - Your account and settings'));
-  }
-}
+// Imported pages from their respective files

@@ -1,208 +1,624 @@
+import 'dart:io';
 import 'package:cp_final/login.dart';
 import 'package:cp_final/service/auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 
-class ProfileReader extends StatelessWidget {
+class ProfileReader extends StatefulWidget {
   const ProfileReader({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final AuthService _auth = AuthService();
+  _ProfileReaderState createState() => _ProfileReaderState();
+}
+
+class _ProfileReaderState extends State<ProfileReader> {
+  final AuthService _auth = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final _formKey = GlobalKey<FormState>();
+
+  bool _isEditing = false;
+  bool _isLoading = false;
+  bool _notificationsEnabled = true;
+  File? _imageFile;
+  late TextEditingController _usernameController;
+  String? _profileImageUrl;
+  List<Map<String, dynamic>> _following = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameController = TextEditingController(text: 'Loading...');
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      await _loadUserData();
+      await _loadFollowing();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: $e')),
+        );
+        setState(() {
+          _isLoading = false;
+          _usernameController.text = 'Error loading profile';
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
     
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+          setState(() {
+            _usernameController.text = userDoc['username'] ?? 'Reader User';
+            _profileImageUrl = userDoc['profileImage'];
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading user data: $e')),
+        );
+      }
+      rethrow;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadFollowing() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final followingSnapshot = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('following')
+            .get();
+        
+        List<Map<String, dynamic>> followingList = [];
+        for (var doc in followingSnapshot.docs) {
+          followingList.add({
+            'id': doc.id,
+            'name': doc['name'] ?? 'Unknown Author',
+            'image': doc['image'],
+          });
+        }
+        
+        if (mounted) {
+          setState(() {
+            _following = followingList;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading following list: $e')),
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      _saveChanges();
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String? imageUrl = _profileImageUrl;
+
+      // Upload new image if selected
+      if (_imageFile != null) {
+        final fileName = path.basename(_imageFile!.path);
+        final ref = _storage.ref().child(
+          'profile_images/${user.uid}/$fileName',
+        );
+        await ref.putFile(_imageFile!);
+        imageUrl = await ref.getDownloadURL();
+      }
+
+      // Update user data in Firestore
+      await _firestore.collection('users').doc(user.uid).update({
+        'username': _usernameController.text.trim(),
+        if (imageUrl != null) 'profileImage': imageUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _isEditing = false;
+        _profileImageUrl = imageUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _unfollowAuthor(String authorId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unfollow Author'),
+        content: const Text('Are you sure you want to unfollow this author?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Unfollow'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .collection('following')
+            .doc(authorId)
+            .delete();
+
+        setState(() {
+          _following.removeWhere((author) => author['id'] == authorId);
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Unfollowed author')));
+      } catch (e) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error unfollowing author: $e')));
+      }
+    }
+  }
+
+  Future<void> _changePassword() async {
+    // Implementation for changing password
+    // This would typically involve sending a password reset email
+    // or navigating to a change password screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+    );
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Header
-            Container(
-              padding: const EdgeInsets.only(top: 40, bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      const CircleAvatar(
-                        radius: 50,
-                        backgroundImage: NetworkImage(
-                          'https://randomuser.me/api/portraits/women/44.jpg',
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 20,
-                            color: Color(0xFF59AC77),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Sarah Johnson',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'sarah.johnson@example.com',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildStatColumn('Books', '24'),
-                      _buildStatColumn('Following', '156'),
-                      _buildStatColumn('Followers', '1.2k'),
-                    ],
-                  ),
-                ],
-              ),
+            const Text(
+              'This action cannot be undone. All your data will be permanently deleted.\n\n',
             ),
-            
-            // Account Settings
-            _buildSection('Account', [
-              _buildListTile(
-                icon: Icons.person_outline,
-                title: 'Edit Profile',
-                onTap: () {
-                  // TODO: Navigate to edit profile
-                },
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Type "DELETE" to confirm',
+                border: OutlineInputBorder(),
               ),
-              _buildListTile(
-                icon: Icons.notifications_none,
-                title: 'Notifications',
-                onTap: () {
-                  // TODO: Navigate to notifications
-                },
-              ),
-              _buildListTile(
-                icon: Icons.lock_outline,
-                title: 'Change Password',
-                onTap: () {
-                  // TODO: Navigate to change password
-                },
-              ),
-            ]),
-            
-            // Preferences
-            _buildSection('Preferences', [
-              _buildListTile(
-                icon: Icons.palette_outlined,
-                title: 'Theme',
-                trailing: 'System Default',
-                onTap: () {
-                  // TODO: Show theme options
-                },
-              ),
-              _buildListTile(
-                icon: Icons.translate,
-                title: 'Language',
-                trailing: 'English',
-                onTap: () {
-                  // TODO: Show language options
-                },
-              ),
-            ]),
-            
-            // Support
-            _buildSection('Support', [
-              _buildListTile(
-                icon: Icons.help_outline,
-                title: 'Help Center',
-                onTap: () {
-                  // TODO: Navigate to help center
-                },
-              ),
-              _buildListTile(
-                icon: Icons.email_outlined,
-                title: 'Contact Us',
-                onTap: () {
-                  // TODO: Navigate to contact form
-                },
-              ),
-              _buildListTile(
-                icon: Icons.info_outline,
-                title: 'About Us',
-                onTap: () {
-                  // TODO: Show about dialog
-                },
-              ),
-            ]),
-            
-            // Logout Button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await _auth.signOut();
-                    if (context.mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(
-                          builder: (context) => const LoginPage(),
-                        ),
-                        (Route<dynamic> route) => false,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[50],
-                    foregroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text('Log Out'),
-                ),
-              ),
-            ),
-            
-            // App Version
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24.0),
-              child: Text(
-                'v1.0.0',
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontSize: 12,
-                ),
-              ),
+              validator: (value) {
+                if (value?.toUpperCase() != 'DELETE') {
+                  return 'Please type DELETE to confirm';
+                }
+                return null;
+              },
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete Account'),
+          ),
+        ],
       ),
     );
+
+    if (confirmed == true) {
+      try {
+        setState(() {
+          _isLoading = true;
+        });
+
+        // Delete user data from Firestore
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await _firestore.collection('users').doc(user.uid).delete();
+
+          // Delete user account
+          await user.delete();
+
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+              (route) => false,
+            );
+          }
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error deleting account: $e')));
+        }
+      }
+    }
   }
-  
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email ?? 'user@example.com';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Profile'),
+        actions: [
+          if (_isEditing)
+            TextButton(
+              onPressed: _isLoading ? null : _saveChanges,
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('SAVE'),
+            ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Header
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircleAvatar(
+                                radius: 60,
+                                backgroundColor: Colors.grey[200],
+                                backgroundImage: _imageFile != null
+                                    ? FileImage(_imageFile!)
+                                    : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                        ? NetworkImage(_profileImageUrl!)
+                                        : null) as ImageProvider?,
+                                child: _imageFile == null && 
+                                      (_profileImageUrl == null || _profileImageUrl!.isEmpty)
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 60,
+                                        color: Colors.grey,
+                                      )
+                                    : null,
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: _pickImage,
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      color: Color(0xFF59AC77),
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (_isEditing)
+                            TextFormField(
+                              controller: _usernameController,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                hintText: 'Enter your name',
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Please enter your name';
+                                }
+                                return null;
+                              },
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isEditing = true;
+                                });
+                              },
+                              child: Text(
+                                _usernameController.text,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          Text(
+                            email,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatColumn('Books', '24'),
+                              _buildStatColumn(
+                                'Following',
+                                _following.length.toString(),
+                              ),
+                              _buildStatColumn('Followers', '1.2k'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Following Section
+                    if (_following.isNotEmpty)
+                      _buildSection('Following', [
+                        ..._following
+                            .map(
+                              (author) => ListTile(
+                                leading: CircleAvatar(
+                                  backgroundImage: author['image'] != null
+                                      ? NetworkImage(author['image'])
+                                      : null,
+                                  child: author['image'] == null
+                                      ? const Icon(Icons.person)
+                                      : null,
+                                ),
+                                title: Text(author['name']),
+                                trailing: TextButton(
+                                  onPressed: () =>
+                                      _unfollowAuthor(author['id']),
+                                  child: const Text(
+                                    'Unfollow',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ]),
+
+                    // Settings Section
+                    _buildSection('Settings', [
+                      ListTile(
+                        leading: const Icon(
+                          Icons.notifications_none,
+                          color: Color(0xFF59AC77),
+                        ),
+                        title: const Text('Push Notifications'),
+                        trailing: Switch(
+                          value: _notificationsEnabled,
+                          onChanged: (value) {
+                            setState(() {
+                              _notificationsEnabled = value;
+                            });
+                            // TODO: Save notification preference
+                          },
+                          activeColor: const Color(0xFF59AC77),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.lock_outline,
+                          color: Color(0xFF59AC77),
+                        ),
+                        title: const Text('Change Password'),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey,
+                        ),
+                        onTap: _changePassword,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.logout,
+                          color: Color(0xFF59AC77),
+                        ),
+                        title: const Text('Logout'),
+                        onTap: _logout,
+                      ),
+                    ]),
+
+                    // Danger Zone
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'DANGER ZONE',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[500],
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ),
+                    Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.red[100]!),
+                      ),
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.delete_forever,
+                          color: Colors.red[400],
+                        ),
+                        title: Text(
+                          'Delete Account',
+                          style: TextStyle(color: Colors.red[400]),
+                        ),
+                        onTap: _deleteAccount,
+                      ),
+                    ),
+
+                    // App Version
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(
+                        child: Text(
+                          'v1.0.0',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
   Widget _buildSection(String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,48 +640,43 @@ class ProfileReader extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Colors.grey[200]!,
-              width: 1,
-            ),
+            side: BorderSide(color: Colors.grey[200]!, width: 1),
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
   }
-  
+
   Widget _buildListTile({
     required IconData icon,
     required String title,
     String? trailing,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
+    Widget? trailingWidget,
   }) {
     return Column(
       children: [
         ListTile(
           leading: Icon(icon, color: const Color(0xFF59AC77)),
           title: Text(title),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (trailing != null)
-                Text(
-                  trailing,
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
+          trailing:
+              trailingWidget ??
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (trailing != null)
+                    Text(trailing, style: TextStyle(color: Colors.grey[500])),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
           onTap: onTap,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
       ],
     );
   }
-  
+
   Widget _buildStatColumn(String label, String value) {
     return Column(
       children: [
@@ -278,14 +689,249 @@ class ProfileReader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
+    );
+  }
+}
+
+class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({Key? key}) : super(key: key);
+
+  @override
+  _ChangePasswordScreenState createState() => _ChangePasswordScreenState();
+}
+
+class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+  final _auth = FirebaseAuth.instance;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // Re-authenticate user
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: _currentPasswordController.text.trim(),
+      );
+
+      await user.reauthenticateWithCredential(credential);
+
+      // Update password
+      await user.updatePassword(_newPasswordController.text.trim());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully')),
+        );
+        Navigator.pop(context);
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'An error occurred';
+      if (e.code == 'wrong-password') {
+        message = 'Current password is incorrect';
+      } else if (e.code == 'weak-password') {
+        message = 'The password provided is too weak';
+      } else {
+        message = e.message ?? 'An error occurred';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('An unexpected error occurred')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Change Password'),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _changePassword,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('SAVE'),
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _currentPasswordController,
+                      decoration: InputDecoration(
+                        labelText: 'Current Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureCurrentPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureCurrentPassword =
+                                  !_obscureCurrentPassword;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: _obscureCurrentPassword,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your current password';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _newPasswordController,
+                      decoration: InputDecoration(
+                        labelText: 'New Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureNewPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureNewPassword = !_obscureNewPassword;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: _obscureNewPassword,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a new password';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm New Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                        ),
+                      ),
+                      obscureText: _obscureConfirmPassword,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your new password';
+                        }
+                        if (value != _newPasswordController.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _changePassword,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF59AC77),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'UPDATE PASSWORD',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () {
+                        // TODO: Implement forgot password flow
+                        _auth.sendPasswordResetEmail(
+                          email: _auth.currentUser?.email ?? '',
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Password reset email sent'),
+                          ),
+                        );
+                      },
+                      child: const Text('Forgot Password?'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }
