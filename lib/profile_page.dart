@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:cp_final/login.dart';
 import 'package:cp_final/service/auth.dart';
-import 'package:cp_final/service/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
