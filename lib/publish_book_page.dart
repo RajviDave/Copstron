@@ -1,7 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // FIX: ADDED THIS IMPORT
-import 'package:cp_final/service/database.dart'; // FIX: CORRECTED PATH
+import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cp_final/service/database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 class PublishBookPage extends StatefulWidget {
@@ -22,6 +25,9 @@ class _PublishBookPageState extends State<PublishBookPage> {
   DateTime? _selectedDate;
   String? _selectedGenre;
   bool _isLoading = false;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  String? _imageUrl;
 
   final List<String> _genres = [
     'Fiction',
@@ -40,6 +46,54 @@ class _PublishBookPageState extends State<PublishBookPage> {
     _descriptionController.dispose();
     _publisherController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _uploadImage() async {
+    if (_imageFile == null) return null;
+    
+    try {
+      final String fileName = 'book_covers/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
+      final UploadTask uploadTask = storageRef.putFile(_imageFile!);
+      final TaskSnapshot storageSnapshot = await uploadTask;
+      return await storageSnapshot.ref.getDownloadURL();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -66,6 +120,16 @@ class _PublishBookPageState extends State<PublishBookPage> {
         return;
       }
 
+      // Upload image first if available
+      String? imageUrl;
+      if (_imageFile != null) {
+        imageUrl = await _uploadImage();
+        if (imageUrl == null) {
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
       final bookData = {
         'contentType': 'Book',
         'name': _bookNameController.text,
@@ -76,6 +140,10 @@ class _PublishBookPageState extends State<PublishBookPage> {
             ? Timestamp.fromDate(_selectedDate!)
             : null,
         'status': status,
+        'imageUrl': imageUrl,
+        'authorId': user.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
       try {
@@ -133,23 +201,54 @@ class _PublishBookPageState extends State<PublishBookPage> {
                 label: 'Name of Book',
               ),
               const SizedBox(height: 20),
-              OutlinedButton.icon(
-                icon: const Icon(
-                  Icons.cloud_upload_outlined,
-                  color: primaryColor,
-                ),
-                label: const Text(
-                  'Upload Book Cover',
-                  style: TextStyle(color: primaryColor),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: const BorderSide(color: primaryColor),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              // Book Cover Upload Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Book Cover',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
                   ),
-                ),
-                onPressed: () {},
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 1.5,
+                        ),
+                        color: Colors.grey.shade50,
+                      ),
+                      child: _imageFile != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(
+                                _imageFile!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) => 
+                                    _buildPlaceholder(),
+                              ),
+                            )
+                          : _buildPlaceholder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Recommended size: 800x1200px',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
               _buildTextFormField(
@@ -259,20 +358,62 @@ class _PublishBookPageState extends State<PublishBookPage> {
     );
   }
 
+  Widget _buildPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.add_photo_alternate_outlined,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap to add book cover',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   TextFormField _buildTextFormField({
     required TextEditingController controller,
     required String label,
     int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         alignLabelWithHint: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
-      validator: (value) {
+      style: const TextStyle(fontSize: 16),
+      validator: validator ?? (value) {
         if (value == null || value.isEmpty) {
           return 'This field cannot be empty.';
         }

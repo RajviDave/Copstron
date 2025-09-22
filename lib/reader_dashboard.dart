@@ -1,7 +1,7 @@
 import 'package:cp_final/reader/home_reader.dart';
 import 'package:cp_final/reader/explore_reader.dart';
 import 'package:cp_final/reader/library_reader.dart';
-import 'package:cp_final/reader/events_reader.dart';
+import 'package:cp_final/reader/events_reader_clean.dart';
 import 'package:cp_final/reader/profile_reader.dart';
 import 'package:cp_final/service/auth.dart';
 import 'package:flutter/material.dart';

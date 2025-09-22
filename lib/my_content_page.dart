@@ -27,7 +27,9 @@ class MyContentPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return const Center(child: Text("Something went wrong."));
+            return Center(
+              child: Text("Error loading content: ${snapshot.error}"),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
@@ -36,6 +38,13 @@ class MyContentPage extends StatelessWidget {
           }
 
           var docs = snapshot.data!.docs;
+          
+          // Sort documents by creation date (newest first)
+          docs.sort((a, b) {
+            var aTime = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp? ?? Timestamp.now();
+            var bTime = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp? ?? Timestamp.now();
+            return bTime.compareTo(aTime);
+          });
 
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
@@ -43,14 +52,15 @@ class MyContentPage extends StatelessWidget {
             itemBuilder: (context, index) {
               var data = docs[index].data() as Map<String, dynamic>;
               String contentType = data['contentType'] ?? 'Unknown';
+              String docId = docs[index].id;
 
               switch (contentType) {
                 case 'Book':
-                  return _BookCard(data: data);
+                  return _BookCard(data: data, docId: docId);
                 case 'Announcement':
-                  return _AnnouncementCard(data: data);
+                  return _AnnouncementCard(data: data, docId: docId);
                 case 'BookTalk':
-                  return _BookTalkCard(data: data);
+                  return _BookTalkCard(data: data, docId: docId);
                 default:
                   return const SizedBox.shrink(); // Hide unknown content types
               }
@@ -66,7 +76,12 @@ class MyContentPage extends StatelessWidget {
 
 class _BookCard extends StatelessWidget {
   final Map<String, dynamic> data;
-  const _BookCard({required this.data});
+  final String docId;
+  
+  const _BookCard({
+    required this.data,
+    required this.docId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -75,70 +90,127 @@ class _BookCard extends StatelessWidget {
     final dateString = timestamp != null
         ? DateFormat('MMMM d, yyyy').format(timestamp.toDate())
         : 'No date';
+    final imageUrl = data['imageUrl'] as String?;
+    final genre = data['genre'] as String?;
+    final publisher = data['publisher'] as String?;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Image section
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                imageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.book, color: Color(0xFF59AC77)),
-                const SizedBox(width: 8),
-                const Text(
-                  "BOOK POST",
-                  style: TextStyle(
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: status == 'Published'
+                            ? Colors.green.shade100
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          color: status == 'Published'
+                              ? Colors.green.shade800
+                              : Colors.grey.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.book, color: Color(0xFF59AC77)),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "BOOK",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF59AC77),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  data['name'] ?? 'No Title',
+                  style: const TextStyle(
+                    fontSize: 20, 
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF59AC77),
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: status == 'Published'
-                        ? Colors.green.shade100
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status.toUpperCase(),
+                if (genre != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    genre,
                     style: TextStyle(
-                      color: status == 'Published'
-                          ? Colors.green.shade800
-                          : Colors.grey.shade700,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
                     ),
                   ),
+                ],
+                if (publisher != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Published by: $publisher',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  data['description'] ?? 'No description provided.',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: Colors.grey[800]),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      dateString,
+                      style: TextStyle(
+                        color: Colors.grey[600], 
+                        fontSize: 12
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const Divider(height: 20),
-            Text(
-              data['name'] ?? 'No Title',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              data['description'] ?? 'No description.',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              dateString,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -146,7 +218,12 @@ class _BookCard extends StatelessWidget {
 
 class _AnnouncementCard extends StatelessWidget {
   final Map<String, dynamic> data;
-  const _AnnouncementCard({required this.data});
+  final String docId;
+  
+  const _AnnouncementCard({
+    required this.data,
+    required this.docId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -154,40 +231,88 @@ class _AnnouncementCard extends StatelessWidget {
     final dateString = timestamp != null
         ? DateFormat('MMMM d, yyyy \'at\' h:mm a').format(timestamp.toDate())
         : 'No date';
+    final text = data['text'] as String?;
+    final imageUrl = data['imageUrl'] as String?;
+    final authorName = data['authorName'] as String?;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Image section if available
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                imageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.campaign, color: Colors.orange),
-                const SizedBox(width: 8),
-                const Text(
-                  "ANNOUNCEMENT",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
+                Row(
+                  children: [
+                    const Icon(Icons.campaign, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "ANNOUNCEMENT",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (authorName != null)
+                      Text(
+                        'By $authorName',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (text != null && text.isNotEmpty)
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                    ),
                   ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      dateString,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const Divider(height: 20),
-            // We check if the text is not null and not empty before showing it
-            if (data['text'] != null && data['text'].isNotEmpty)
-              Text(data['text'], style: const TextStyle(fontSize: 16)),
-            const SizedBox(height: 12),
-            Text(
-              dateString,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -195,86 +320,222 @@ class _AnnouncementCard extends StatelessWidget {
 
 class _BookTalkCard extends StatelessWidget {
   final Map<String, dynamic> data;
-  const _BookTalkCard({required this.data});
+  final String docId;
+  
+  const _BookTalkCard({
+    required this.data,
+    required this.docId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final eventTimestamp = data['eventTimestamp'] as Timestamp?;
-    final eventDateString = eventTimestamp != null
-        ? DateFormat(
-            'MMMM d, yyyy \'at\' h:mm a',
-          ).format(eventTimestamp.toDate())
-        : 'Date & Time TBA';
-
-    final eventType = data['eventType'] ?? 'Event';
+    final timestamp = data['eventTimestamp'] as Timestamp?;
+    final dateString = timestamp != null
+        ? DateFormat('MMMM d, yyyy \'at\' h:mm a').format(timestamp.toDate())
+        : 'No date';
+    final bookName = data['bookName'] as String? ?? 'Untitled Book';
+    final authors = data['authors'] as String?;
+    final eventType = data['eventType'] as String? ?? 'Physical';
+    final location = data['location'] as String?;
     final isOnline = eventType == 'Online';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.mic, color: Colors.blue),
-                const SizedBox(width: 8),
-                const Text(
-                  "BOOK TALK",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
-              ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header with event type
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isOnline ? Colors.blue.shade50 : Colors.purple.shade50,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             ),
-            const Divider(height: 20),
-            Text(
-              data['bookName'] ?? 'No Title',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'With: ${data['authors'] ?? 'TBA'}',
-              style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-            ),
-            const SizedBox(height: 12),
-            Row(
+            child: Row(
               children: [
                 Icon(
-                  isOnline ? Icons.link : Icons.location_on,
-                  color: Colors.grey.shade600,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    data['location'] ?? 'Location TBA',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: Colors.grey.shade600,
-                  size: 16,
+                  isOnline ? Icons.videocam : Icons.location_on,
+                  color: isOnline ? Colors.blue : Colors.purple,
+                  size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  eventDateString,
-                  style: TextStyle(color: Colors.grey.shade700),
+                  isOnline ? 'ONLINE EVENT' : 'IN-PERSON EVENT',
+                  style: TextStyle(
+                    color: isOnline ? Colors.blue : Colors.purple,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                  ),
                 ),
+                const Spacer(),
+                if (timestamp != null && timestamp.toDate().isAfter(DateTime.now()))
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'UPCOMING',
+                      style: TextStyle(
+                        color: Colors.green.shade800,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Book title
+                Text(
+                  bookName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                
+                // Authors
+                if (authors != null && authors.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          authors,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                
+                // Event details
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Date & Time
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_today, size: 16, color: Colors.grey[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Date & Time',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateString,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // Location/Online Link
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            isOnline ? Icons.link : Icons.location_on,
+                            size: 16,
+                            color: Colors.grey[700],
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isOnline ? 'Online Link' : 'Location',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                if (location != null && location.isNotEmpty)
+                                  Text(
+                                    location,
+                                    style: const TextStyle(fontSize: 14),
+                                  )
+                                else
+                                  Text(
+                                    isOnline ? 'Link will be provided' : 'Location to be announced',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[500],
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Action buttons
+                if (timestamp != null && timestamp.toDate().isAfter(DateTime.now()))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement join/register action
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.event_available, size: 20),
+                      label: Text(
+                        isOnline ? 'JOIN EVENT' : 'REGISTER',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
