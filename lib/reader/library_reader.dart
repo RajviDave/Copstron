@@ -33,7 +33,7 @@ class LibraryReader extends StatelessWidget {
 }
 
 class _ReadingTab extends StatelessWidget {
-  const _ReadingTab({super.key});
+  const _ReadingTab();
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +128,7 @@ class _ReadingTab extends StatelessWidget {
 }
 
 class _SavedTab extends StatelessWidget {
-  const _SavedTab({super.key});
+  const _SavedTab();
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +186,7 @@ class _SavedTab extends StatelessWidget {
 }
 
 class _HistoryTab extends StatelessWidget {
-  const _HistoryTab({super.key});
+  const _HistoryTab();
 
   @override
   Widget build(BuildContext context) {

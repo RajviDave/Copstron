@@ -1,4 +1,3 @@
-import 'package:cp_final/login.dart';
 import 'package:cp_final/reader/home_reader.dart';
 import 'package:cp_final/reader/explore_reader.dart';
 import 'package:cp_final/reader/library_reader.dart';
