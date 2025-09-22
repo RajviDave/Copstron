@@ -69,10 +69,7 @@ class _EventsReaderState extends State<EventsReader> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('content')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+        stream: _database.getPublicContentStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));

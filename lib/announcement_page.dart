@@ -122,7 +122,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
       }
       
       // Add the announcement to the database
-      await database.addContent(contentData);
+      await database.addPublicContent(contentData);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

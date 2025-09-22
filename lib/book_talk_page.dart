@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// Import for Timestamp
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+
 class BookTalkPage extends StatefulWidget {
   const BookTalkPage({Key? key}) : super(key: key);
 
@@ -81,7 +84,7 @@ class _BookTalkPageState extends State<BookTalkPage> {
       };
 
       try {
-        await DatabaseService(uid: user.uid).addContent(contentData);
+        await DatabaseService(uid: user.uid).addPublicContent(contentData);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

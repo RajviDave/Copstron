@@ -55,14 +55,31 @@ class _ProfilePageState extends State<ProfilePage> {
   void _setupBookCountListener() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final database = DatabaseService(uid: user.uid);
-      database.getBookCountStream().listen((count) {
-        if (mounted) {
-          setState(() {
-            _bookCount = count;
+      // Get the initial count
+      _firestore.collection('publicContent')
+          .where('authorId', isEqualTo: user.uid)
+          .where('contentType', isEqualTo: 'Book')
+          .get()
+          .then((snapshot) {
+            if (mounted) {
+              setState(() {
+                _bookCount = snapshot.size;
+              });
+            }
           });
-        }
-      });
+
+      // Set up a listener for changes
+      _firestore.collection('publicContent')
+          .where('authorId', isEqualTo: user.uid)
+          .where('contentType', isEqualTo: 'Book')
+          .snapshots()
+          .listen((snapshot) {
+            if (mounted) {
+              setState(() {
+                _bookCount = snapshot.size;
+              });
+            }
+          });
     }
   }
 

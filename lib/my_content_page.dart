@@ -21,7 +21,7 @@ class MyContentPage extends StatelessWidget {
         backgroundColor: const Color(0xFF59AC77),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: DatabaseService(uid: user.uid).getContentStream(),
+        stream: DatabaseService(uid: user.uid).getMyContentStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

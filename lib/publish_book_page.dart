@@ -79,7 +79,12 @@ class _PublishBookPageState extends State<PublishBookPage> {
       };
 
       try {
-        await DatabaseService(uid: user.uid).addContent(bookData);
+        // Use addPublicContent for published books, addDraftContent for drafts
+        if (status == 'Published') {
+          await DatabaseService(uid: user.uid).addPublicContent(bookData);
+        } else {
+          await DatabaseService(uid: user.uid).addDraftContent(bookData);
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
