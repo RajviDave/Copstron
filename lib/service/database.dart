@@ -34,6 +34,20 @@ class DatabaseService {
     }, SetOptions(merge: true));
   }
 
+  // Get user data by ID
+  Future<Map<String, dynamic>?> getUserDataById(String userId) async {
+    try {
+      DocumentSnapshot doc = await userCollection.doc(userId).get();
+      if (doc.exists) {
+        return doc.data() as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      print('Error getting user data by ID: $e');
+      rethrow;
+    }
+  }
+
   // Get user data
   Future<Map<String, dynamic>?> getUserData() async {
     if (uid == null) return null;
@@ -175,6 +189,75 @@ class DatabaseService {
 
           return reviewCount > 0 ? totalRating / reviewCount : 0.0;
         });
+  }
+
+  // Toggle like on a public content item
+  Future<void> toggleLike(String contentId, String userId) async {
+    try {
+      final docRef = publicContentCollection.doc(contentId);
+      final doc = await docRef.get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        final dynamic likesData = data?['likes'];
+        final List<String> likes = likesData is List ? List<String>.from(likesData) : [];
+
+        if (likes.contains(userId)) {
+          await docRef.update({
+            'likes': FieldValue.arrayRemove([userId])
+          });
+        } else {
+          await docRef.update({
+            'likes': FieldValue.arrayUnion([userId])
+          });
+        }
+      }
+    } catch (e) {
+      print('Error toggling like: $e');
+      rethrow;
+    }
+  }
+
+  // Add a comment to a public content item
+  Future<void> addComment(String contentId, String commentText, String userId) async {
+    try {
+      final commentData = {
+        'text': commentText,
+        'userId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await publicContentCollection
+          .doc(contentId)
+          .collection('comments')
+          .add(commentData);
+    } catch (e) {
+      print('Error adding comment: $e');
+      rethrow;
+    }
+  }
+
+  // Delete a comment from a public content item
+  Future<void> deleteComment(String contentId, String commentId) async {
+    try {
+      await publicContentCollection
+          .doc(contentId)
+          .collection('comments')
+          .doc(commentId)
+          .delete();
+    } catch (e) {
+      print('Error deleting comment: $e');
+      rethrow;
+    }
+  }
+
+  // Get stream of comments for a public content item
+  Stream<QuerySnapshot> getCommentsStream(String contentId) {
+    return publicContentCollection
+        .doc(contentId)
+        .collection('comments')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 }
 

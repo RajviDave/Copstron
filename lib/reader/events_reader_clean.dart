@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cp_final/service/database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:timeago/timeago.dart' as timeago;
@@ -11,15 +12,142 @@ class EventsReader extends StatefulWidget {
   State<EventsReader> createState() => _EventsReaderState();
 }
 
+class _CommentsSection extends StatefulWidget {
+  final String announcementId;
+  final String authorId;
+  final User? currentUser;
+  final DatabaseService database;
+
+  const _CommentsSection({
+    required this.announcementId,
+    required this.authorId,
+    required this.currentUser,
+    required this.database,
+  });
+
+  @override
+  _CommentsSectionState createState() => _CommentsSectionState();
+}
+
+class _CommentsSectionState extends State<_CommentsSection> {
+  final TextEditingController _commentController = TextEditingController();
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (_isExpanded)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              children: [
+                StreamBuilder<QuerySnapshot>(
+                  stream: widget.database.getCommentsStream(widget.announcementId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Text('No comments yet.');
+                    }
+
+                    final comments = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = comments[index];
+                        final commentData = comment.data() as Map<String, dynamic>;
+                        final commentUserId = commentData['userId'] as String;
+
+                        return FutureBuilder<Map<String, dynamic>?>(
+                          future: widget.database.getUserDataById(commentUserId),
+                          builder: (context, userSnapshot) {
+                            if (userSnapshot.connectionState == ConnectionState.waiting) {
+                              return const SizedBox.shrink();
+                            }
+
+                            final commenterName = userSnapshot.data?['name'] ?? 'Anonymous';
+                            final canDelete = widget.currentUser?.uid == commentUserId ||
+                                widget.currentUser?.uid == widget.authorId;
+
+                            return ListTile(
+                              title: Text(commenterName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text(commentData['text'] as String),
+                              trailing: canDelete
+                                  ? IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.grey),
+                                      onPressed: () {
+                                        widget.database.deleteComment(widget.announcementId, comment.id);
+                                      },
+                                    )
+                                  : null,
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+                if (widget.currentUser != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: TextField(
+                      controller: _commentController,
+                      decoration: InputDecoration(
+                        hintText: 'Add a comment...',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.send),
+                          onPressed: () {
+                            if (_commentController.text.isNotEmpty) {
+                              widget.database.addComment(
+                                widget.announcementId,
+                                _commentController.text,
+                                widget.currentUser!.uid,
+                              );
+                              _commentController.clear();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: Text(_isExpanded ? 'Hide Comments' : 'View Comments'),
+        ),
+      ],
+    );
+  }
+}
+
 class _EventsReaderState extends State<EventsReader> {
   final DatabaseService _database = DatabaseService();
   String _searchQuery = '';
   String _selectedFilter = 'all';
+  User? _currentUser;
 
   @override
   void initState() {
     super.initState();
     timeago.setLocaleMessages('en', timeago.EnMessages());
+    _getCurrentUser();
+  }
+
+  void _getCurrentUser() {
+    setState(() {
+      _currentUser = FirebaseAuth.instance.currentUser;
+    });
   }
 
   @override
@@ -624,6 +752,10 @@ class _EventsReaderState extends State<EventsReader> {
   
   Widget _buildAnnouncementCard(Map<String, dynamic> announcement, String authorName, String? imageUrl, String timeAgo, BuildContext context) {
     final text = announcement['text'] as String? ?? '';
+    final dynamic likesData = announcement['likes'];
+    final List<String> likes = likesData is List ? List<String>.from(likesData) : [];
+    final isLiked = _currentUser != null && likes.contains(_currentUser!.uid);
+    final announcementId = announcement['id'] as String;
     
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -746,7 +878,30 @@ class _EventsReaderState extends State<EventsReader> {
                 
                 Row(
                   children: [
-                    _buildActionButton(Icons.thumb_up_outlined, 'Like'),
+                    TextButton.icon(
+                      onPressed: () {
+                        if (_currentUser != null) {
+                          _database.toggleLike(announcementId, _currentUser!.uid);
+                        }
+                      },
+                      icon: Icon(
+                        isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
+                        color: isLiked ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                        size: 20,
+                      ),
+                      label: Text(
+                        '${likes.length} Likes',
+                        style: TextStyle(
+                          color: isLiked ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.grey.shade700,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      ),
+                    ),
                     const SizedBox(width: 16),
                     _buildActionButton(Icons.comment_outlined, 'Comment'),
                     const SizedBox(width: 16),
@@ -758,6 +913,12 @@ class _EventsReaderState extends State<EventsReader> {
           ),
           
           const SizedBox(height: 8),
+          _CommentsSection(
+            announcementId: announcementId,
+            authorId: announcement['authorId'] as String,
+            currentUser: _currentUser,
+            database: _database,
+          ),
         ],
       ),
     );
