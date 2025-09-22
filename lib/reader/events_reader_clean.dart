@@ -137,7 +137,6 @@ class _EventsReaderState extends State<EventsReader> {
   String _selectedFilter = 'all';
   User? _currentUser;
   List<String> _savedBookIds = [];
-  List<String> _trackedBookIds = [];
 
   @override
   void initState() {
@@ -153,13 +152,6 @@ class _EventsReaderState extends State<EventsReader> {
         if (mounted) {
           setState(() {
             _savedBookIds = savedIds;
-          });
-        }
-      });
-      _database.getTrackedBookIdsStream(_currentUser!.uid).listen((trackedIds) {
-        if (mounted) {
-          setState(() {
-            _trackedBookIds = trackedIds;
           });
         }
       });
@@ -995,48 +987,4 @@ class _EventsReaderState extends State<EventsReader> {
 
 
 
-  Widget _buildInfoRow(String label, String? value, {bool isLink = false}) {
-    final displayValue = value ?? 'Not specified';
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              '$label:',
-              style: const TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: isLink
-                ? GestureDetector(
-                    onTap: () {
-                      if (value != null && value.isNotEmpty) {
-                        // TODO: Implement link opening logic
-                      }
-                    },
-                    child: Text(
-                      displayValue,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                        fontSize: 13,
-                      ),
-                    ),
-                  )
-                : Text(
-                    displayValue,
-                    style: const TextStyle(fontSize: 13),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-          ),
-        ],
-      ),
-    );
   }
-}

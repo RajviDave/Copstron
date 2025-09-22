@@ -279,7 +279,11 @@ class DatabaseService {
 
   // Track a book for a user
   Future<void> trackBook(String userId, String bookId) async {
-    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).set({'trackedAt': FieldValue.serverTimestamp()});
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).set({
+      'trackedAt': FieldValue.serverTimestamp(),
+      'totalPages': 0,
+      'pagesRead': 0,
+    });
   }
 
   // Untrack a book for a user
@@ -287,11 +291,32 @@ class DatabaseService {
     await userCollection.doc(userId).collection('trackedBooks').doc(bookId).delete();
   }
 
-  // Get stream of tracked book IDs for a user
-  Stream<List<String>> getTrackedBookIdsStream(String userId) {
-    return userCollection.doc(userId).collection('trackedBooks').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => doc.id).toList();
+  // Get stream of tracked books for a user
+  Stream<QuerySnapshot> getTrackedBooksStream(String userId) {
+    return userCollection.doc(userId).collection('trackedBooks').snapshots();
+  }
+
+  // Update reading progress for a tracked book
+  Future<void> updateBookProgress(String userId, String bookId, int totalPages, int pagesRead) async {
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).update({
+      'totalPages': totalPages,
+      'pagesRead': pagesRead,
     });
+  }
+
+  // Move a book to the user's read history
+  Future<void> moveBookToHistory(String userId, String bookId) async {
+    // First, add it to the history with a timestamp
+    await userCollection.doc(userId).collection('readHistory').doc(bookId).set({
+      'finishedAt': FieldValue.serverTimestamp(),
+    });
+    // Then, remove it from the tracked books
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).delete();
+  }
+
+  // Get stream of the user's read history
+  Stream<QuerySnapshot> getHistoryStream(String userId) {
+    return userCollection.doc(userId).collection('readHistory').orderBy('finishedAt', descending: true).snapshots();
   }
 }
 
