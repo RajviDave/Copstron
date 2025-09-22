@@ -1,256 +1,175 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cp_final/service/database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class LibraryReader extends StatelessWidget {
+class LibraryReader extends StatefulWidget {
   const LibraryReader({super.key});
 
   @override
+  _LibraryReaderState createState() => _LibraryReaderState();
+}
+
+class _LibraryReaderState extends State<LibraryReader> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final DatabaseService _database = DatabaseService();
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _currentUser = FirebaseAuth.instance.currentUser;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My Library'),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF59AC77),
-          bottom: const TabBar(
-            labelColor: Color(0xFF59AC77),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF59AC77),
-            tabs: [
-              Tab(icon: Icon(Icons.collections_bookmark), text: 'Reading'),
-              Tab(icon: Icon(Icons.bookmark), text: 'Saved'),
-              Tab(icon: Icon(Icons.history), text: 'History'),
-            ],
-          ),
+    if (_currentUser == null) {
+      return const Scaffold(
+        body: Center(child: Text('Please log in to view your library.')),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Library'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF59AC77),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF59AC77),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF59AC77),
+          tabs: const [
+            Tab(icon: Icon(Icons.collections_bookmark), text: 'Reading'),
+            Tab(icon: Icon(Icons.bookmark), text: 'Saved'),
+            Tab(icon: Icon(Icons.history), text: 'History'),
+          ],
         ),
-        body: const TabBarView(
-          children: [_ReadingTab(), _SavedTab(), _HistoryTab()],
-        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _BookList(bookIdsStream: _database.getTrackedBookIdsStream(_currentUser!.uid)),
+          _BookList(bookIdsStream: _database.getSavedBookIdsStream(_currentUser!.uid)),
+          const _HistoryTab(), // History tab remains static for now
+        ],
       ),
     );
   }
 }
 
-class _ReadingTab extends StatelessWidget {
-  const _ReadingTab();
+class _BookList extends StatelessWidget {
+  final Stream<List<String>> bookIdsStream;
+  final DatabaseService _database = DatabaseService();
 
-  @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> readingList = [
-      {
-        'title': 'The Midnight Library',
-        'author': 'Matt Haig',
-        'progress': 0.65,
-        'cover': 'https://images.unsplash.com/photo-1544947950-fa07a98d237f',
-      },
-      {
-        'title': 'Project Hail Mary',
-        'author': 'Andy Weir',
-        'progress': 0.30,
-        'cover': 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c',
-      },
-    ];
+  _BookList({required this.bookIdsStream});
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: readingList.length,
-      itemBuilder: (context, index) {
-        final book = readingList[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    book['cover'],
-                    width: 80,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        book['title'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        book['author'],
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 16),
-                      LinearProgressIndicator(
-                        value: book['progress'],
-                        backgroundColor: Colors.grey[200],
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF59AC77),
-                        ),
-                        minHeight: 6,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${(book['progress'] * 100).toInt()}% completed',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    // TODO: Show options menu
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  Future<List<DocumentSnapshot>> _getBooksByIds(List<String> bookIds) async {
+    final List<DocumentSnapshot> bookDocs = [];
+    for (String id in bookIds) {
+      // Assuming books are stored in the 'publicContent' collection
+      final doc = await _database.publicContentCollection.doc(id).get();
+      if (doc.exists) {
+        bookDocs.add(doc);
+      }
+    }
+    return bookDocs;
   }
-}
-
-class _SavedTab extends StatelessWidget {
-  const _SavedTab();
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> savedBooks = [
-      {
-        'title': 'Dune',
-        'author': 'Frank Herbert',
-        'cover': 'https://images.unsplash.com/photo-1589998059171-988d887df646',
-      },
-      {
-        'title': 'The Song of Achilles',
-        'author': 'Madeline Miller',
-        'cover': 'https://images.unsplash.com/photo-1541963463532-d68292c34b19',
-      },
-    ];
+    return StreamBuilder<List<String>>(
+      stream: bookIdsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No books found in this section.'));
+        }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: savedBooks.length,
-      itemBuilder: (context, index) {
-        final book = savedBooks[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                book['cover']!,
-                width: 50,
-                height: 75,
-                fit: BoxFit.cover,
-              ),
-            ),
-            title: Text(
-              book['title']!,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(book['author']!),
-            trailing: IconButton(
-              icon: const Icon(Icons.bookmark, color: Color(0xFF59AC77)),
-              onPressed: () {
-                // TODO: Remove from saved
+        final bookIds = snapshot.data!;
+
+        return FutureBuilder<List<DocumentSnapshot>>(
+          future: _getBooksByIds(bookIds),
+          builder: (context, bookSnapshot) {
+            if (bookSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (bookSnapshot.hasError) {
+              return Center(child: Text('Error: ${bookSnapshot.error}'));
+            }
+            if (!bookSnapshot.hasData || bookSnapshot.data!.isEmpty) {
+              return const Center(child: Text('No books to display.'));
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: bookSnapshot.data!.length,
+              itemBuilder: (context, index) {
+                final book = bookSnapshot.data![index].data() as Map<String, dynamic>;
+                return _BookCard(book: book);
               },
-            ),
-          ),
+            );
+          },
         );
       },
     );
   }
 }
 
+class _BookCard extends StatelessWidget {
+  final Map<String, dynamic> book;
+
+  const _BookCard({required this.book});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: book['imageUrl'] != null
+              ? Image.network(
+                  book['imageUrl'],
+                  width: 50,
+                  height: 75,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  width: 50,
+                  height: 75,
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.book, color: Colors.grey),
+                ),
+        ),
+        title: Text(
+          book['name'] ?? 'No Title',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(book['authorName'] ?? 'Unknown Author'),
+      ),
+    );
+  }
+}
+
+// Static History Tab for now
 class _HistoryTab extends StatelessWidget {
   const _HistoryTab();
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> history = [
-      {
-        'title': 'The Midnight Library',
-        'author': 'Matt Haig',
-        'date': '2 days ago',
-        'cover': 'https://images.unsplash.com/photo-1544947950-fa07a98d237f',
-      },
-      {
-        'title': 'Project Hail Mary',
-        'author': 'Andy Weir',
-        'date': '1 week ago',
-        'cover': 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c',
-      },
-    ];
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: history.length,
-      itemBuilder: (context, index) {
-        final item = history[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(12),
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                item['cover'],
-                width: 50,
-                height: 75,
-                fit: BoxFit.cover,
-              ),
-            ),
-            title: Text(
-              item['title'],
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['author']),
-                const SizedBox(height: 4),
-                Text(
-                  item['date'],
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward_ios, size: 16),
-              onPressed: () {
-                // TODO: Navigate to book details
-              },
-            ),
-          ),
-        );
-      },
-    );
+    return const Center(child: Text('History will be implemented later.'));
   }
 }

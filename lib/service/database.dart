@@ -259,6 +259,40 @@ class DatabaseService {
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
+
+  // Save a book for a user
+  Future<void> saveBook(String userId, String bookId) async {
+    await userCollection.doc(userId).collection('savedBooks').doc(bookId).set({'savedAt': FieldValue.serverTimestamp()});
+  }
+
+  // Unsave a book for a user
+  Future<void> unsaveBook(String userId, String bookId) async {
+    await userCollection.doc(userId).collection('savedBooks').doc(bookId).delete();
+  }
+
+  // Get stream of saved book IDs for a user
+  Stream<List<String>> getSavedBookIdsStream(String userId) {
+    return userCollection.doc(userId).collection('savedBooks').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.id).toList();
+    });
+  }
+
+  // Track a book for a user
+  Future<void> trackBook(String userId, String bookId) async {
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).set({'trackedAt': FieldValue.serverTimestamp()});
+  }
+
+  // Untrack a book for a user
+  Future<void> untrackBook(String userId, String bookId) async {
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).delete();
+  }
+
+  // Get stream of tracked book IDs for a user
+  Stream<List<String>> getTrackedBookIdsStream(String userId) {
+    return userCollection.doc(userId).collection('trackedBooks').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.id).toList();
+    });
+  }
 }
 
 

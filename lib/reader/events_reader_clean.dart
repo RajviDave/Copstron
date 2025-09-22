@@ -136,6 +136,8 @@ class _EventsReaderState extends State<EventsReader> {
   String _searchQuery = '';
   String _selectedFilter = 'all';
   User? _currentUser;
+  List<String> _savedBookIds = [];
+  List<String> _trackedBookIds = [];
 
   @override
   void initState() {
@@ -145,9 +147,24 @@ class _EventsReaderState extends State<EventsReader> {
   }
 
   void _getCurrentUser() {
-    setState(() {
-      _currentUser = FirebaseAuth.instance.currentUser;
-    });
+    _currentUser = FirebaseAuth.instance.currentUser;
+    if (_currentUser != null) {
+      _database.getSavedBookIdsStream(_currentUser!.uid).listen((savedIds) {
+        if (mounted) {
+          setState(() {
+            _savedBookIds = savedIds;
+          });
+        }
+      });
+      _database.getTrackedBookIdsStream(_currentUser!.uid).listen((trackedIds) {
+        if (mounted) {
+          setState(() {
+            _trackedBookIds = trackedIds;
+          });
+        }
+      });
+    }
+    setState(() {});
   }
 
   @override
@@ -373,6 +390,8 @@ class _EventsReaderState extends State<EventsReader> {
     final title = book['name'] as String? ?? 'Untitled Book';
     final description = book['description'] as String? ?? '';
     final genre = book['genre'] as String?;
+    final bookId = book['id'] as String;
+    final isSaved = _savedBookIds.contains(bookId);
     
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -519,11 +538,46 @@ class _EventsReaderState extends State<EventsReader> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
-                _buildActionButton(Icons.bookmark_border, 'Save'),
+                TextButton.icon(
+                  onPressed: () {
+                    if (_currentUser != null) {
+                      if (isSaved) {
+                        _database.unsaveBook(_currentUser!.uid, bookId);
+                      } else {
+                        _database.saveBook(_currentUser!.uid, bookId);
+                      }
+                    }
+                  },
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                  ),
+                  label: Text(
+                    isSaved ? 'Saved' : 'Save',
+                    style: TextStyle(
+                      color: isSaved ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
                 _buildActionButton(Icons.share_outlined, 'Share'),
                 const Spacer(),
-                _buildActionButton(Icons.more_vert, ''),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'track') {
+                      if (_currentUser != null) {
+                        _database.trackBook(_currentUser!.uid, bookId);
+                      }
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    const PopupMenuItem<String>(
+                      value: 'track',
+                      child: Text('Track the book'),
+                    ),
+                  ],
+                  icon: Icon(Icons.more_vert, color: Colors.grey.shade700),
+                ),
               ],
             ),
           ),
