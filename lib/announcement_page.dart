@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AnnouncementPage extends StatefulWidget {
-  const AnnouncementPage({Key? key}) : super(key: key);
+  const AnnouncementPage({super.key});
 
   @override
   State<AnnouncementPage> createState() => _AnnouncementPageState();
@@ -29,14 +29,14 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
     try {
       // Create a reference to the location where you want to upload the file
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageReference = FirebaseStorage.instance
-          .ref()
-          .child('announcement_images/$fileName.jpg');
-      
+      Reference storageReference = FirebaseStorage.instance.ref().child(
+        'announcement_images/$fileName.jpg',
+      );
+
       // Upload the file
       UploadTask uploadTask = storageReference.putFile(imageFile);
       TaskSnapshot storageTaskSnapshot = await uploadTask;
-      
+
       // Get the download URL
       String downloadUrl = await storageTaskSnapshot.ref.getDownloadURL();
       return downloadUrl;
@@ -101,7 +101,7 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
         'likes': 0,
         'comments': [],
       };
-      
+
       // If there's an image, upload it first
       if (_imageFile != null) {
         try {
@@ -120,10 +120,10 @@ class _AnnouncementPageState extends State<AnnouncementPage> {
           return;
         }
       }
-      
+
       // Add the announcement to the database
       await database.addPublicContent(contentData);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

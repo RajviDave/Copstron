@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class LibraryReader extends StatelessWidget {
-  const LibraryReader({Key? key}) : super(key: key);
+  const LibraryReader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +25,7 @@ class LibraryReader extends StatelessWidget {
           ),
         ),
         body: const TabBarView(
-          children: [
-            _ReadingTab(),
-            _SavedTab(),
-            _HistoryTab(),
-          ],
+          children: [_ReadingTab(), _SavedTab(), _HistoryTab()],
         ),
       ),
     );
@@ -37,7 +33,7 @@ class LibraryReader extends StatelessWidget {
 }
 
 class _ReadingTab extends StatelessWidget {
-  const _ReadingTab({Key? key}) : super(key: key);
+  const _ReadingTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -96,10 +92,7 @@ class _ReadingTab extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         book['author'],
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 16),
                       LinearProgressIndicator(
@@ -114,10 +107,7 @@ class _ReadingTab extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         '${(book['progress'] * 100).toInt()}% completed',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -138,7 +128,7 @@ class _ReadingTab extends StatelessWidget {
 }
 
 class _SavedTab extends StatelessWidget {
-  const _SavedTab({Key? key}) : super(key: key);
+  const _SavedTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +186,7 @@ class _SavedTab extends StatelessWidget {
 }
 
 class _HistoryTab extends StatelessWidget {
-  const _HistoryTab({Key? key}) : super(key: key);
+  const _HistoryTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -248,10 +238,7 @@ class _HistoryTab extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   item['date'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),

@@ -4,7 +4,7 @@ import 'package:cp_final/publish_book_page.dart';
 import 'package:flutter/material.dart';
 
 class CreatePostPage extends StatelessWidget {
-  const CreatePostPage({Key? key}) : super(key: key);
+  const CreatePostPage({super.key});
 
   @override
   Widget build(BuildContext context) {

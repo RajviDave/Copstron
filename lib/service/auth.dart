@@ -41,7 +41,7 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return null; // User cancelled the sign-in
 
-      final GoogleSignInAuthentication? googleAuth =
+      final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
       if (googleAuth?.accessToken != null && googleAuth?.idToken != null) {

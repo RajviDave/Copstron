@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ExploreReader extends StatelessWidget {
-  const ExploreReader({Key? key}) : super(key: key);
+  const ExploreReader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -80,10 +80,7 @@ class ExploreReader extends StatelessWidget {
           child: Center(
             child: Text(
               '${genres[index]['emoji']} ${genres[index]['name']}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ),
         );
@@ -141,7 +138,9 @@ class ExploreReader extends StatelessWidget {
             children: [
               Expanded(
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
                   child: Image.network(
                     'https://picsum.photos/200/300?random=$index',
                     width: double.infinity,
@@ -166,10 +165,7 @@ class ExploreReader extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       books[index]['author']!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),

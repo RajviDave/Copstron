@@ -8,7 +8,7 @@ import 'package:cp_final/service/auth.dart';
 import 'package:flutter/material.dart';
 
 class ReaderDashboard extends StatefulWidget {
-  const ReaderDashboard({Key? key}) : super(key: key);
+  const ReaderDashboard({super.key});
 
   @override
   State<ReaderDashboard> createState() => _ReaderDashboardState();
@@ -35,31 +35,17 @@ class _ReaderDashboardState extends State<ReaderDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _pages.elementAt(_selectedIndex),
-      ),
+      body: Center(child: _pages.elementAt(_selectedIndex)),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: 'Library',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.event),
-            label: 'Events',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xFF59AC77), // Match the primary color

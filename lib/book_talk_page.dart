@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 
 class BookTalkPage extends StatefulWidget {
-  const BookTalkPage({Key? key}) : super(key: key);
+  const BookTalkPage({super.key});
 
   @override
   State<BookTalkPage> createState() => _BookTalkPageState();

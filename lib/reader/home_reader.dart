@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class HomeReader extends StatelessWidget {
-  const HomeReader({Key? key}) : super(key: key);
+  const HomeReader({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +61,15 @@ class HomeReader extends StatelessWidget {
     );
   }
 
-  Widget _buildBookCard(String title, String author, String imageUrl, String update) {
+  Widget _buildBookCard(
+    String title,
+    String author,
+    String imageUrl,
+    String update,
+  ) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
@@ -96,10 +99,7 @@ class HomeReader extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'By $author',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -128,19 +128,23 @@ class HomeReader extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendationCard(String title, String author, String imageUrl) {
+  Widget _buildRecommendationCard(
+    String title,
+    String author,
+    String imageUrl,
+  ) {
     return SizedBox(
       width: 150,
       child: Card(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: Image.network(
                 imageUrl,
                 width: double.infinity,
@@ -165,10 +169,7 @@ class HomeReader extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     author,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -24,7 +24,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _nameController = TextEditingController();
   final _bioController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   File? _imageFile;
   String? _profileImageUrl;
   bool _isLoading = true;
@@ -39,7 +39,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _loadUserData();
-    
+
     // Listen to changes in the name and bio fields
     _nameController.addListener(() {
       _onFormChanged();
@@ -47,16 +47,17 @@ class _ProfilePageState extends State<ProfilePage> {
     _bioController.addListener(() {
       _onFormChanged();
     });
-    
+
     // Set up listener for book count updates
     _setupBookCountListener();
   }
-  
+
   void _setupBookCountListener() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       // Get the initial count
-      _firestore.collection('publicContent')
+      _firestore
+          .collection('publicContent')
           .where('authorId', isEqualTo: user.uid)
           .where('contentType', isEqualTo: 'Book')
           .get()
@@ -69,7 +70,8 @@ class _ProfilePageState extends State<ProfilePage> {
           });
 
       // Set up a listener for changes
-      _firestore.collection('publicContent')
+      _firestore
+          .collection('publicContent')
           .where('authorId', isEqualTo: user.uid)
           .where('contentType', isEqualTo: 'Book')
           .snapshots()
@@ -91,25 +93,26 @@ class _ProfilePageState extends State<ProfilePage> {
     _bioController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _onFormChanged() async {
     if (!mounted) return;
-    
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     try {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (!doc.exists) return;
-      
-      final data = doc.data() as Map<String, dynamic>?;
+
+      final data = doc.data();
       final currentName = data?['name'] ?? '';
       final currentBio = data?['bio'] ?? '';
-      
+
       if (mounted) {
         setState(() {
-          _formChanged = _nameController.text != currentName ||
-                        _bioController.text != currentBio;
+          _formChanged =
+              _nameController.text != currentName ||
+              _bioController.text != currentBio;
         });
       }
     } catch (e) {
@@ -129,7 +132,7 @@ class _ProfilePageState extends State<ProfilePage> {
       // Get user document
       final doc = await _firestore.collection('users').doc(user.uid).get();
       if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
+        final data = doc.data();
         setState(() {
           _nameController.text = data?['name'] ?? '';
           _bioController.text = data?['bio'] ?? '';
@@ -139,11 +142,11 @@ class _ProfilePageState extends State<ProfilePage> {
           _rating = (data?['rating'] ?? 0.0).toDouble();
         });
       }
-      
+
       // Set up listener for user data changes
       _firestore.collection('users').doc(user.uid).snapshots().listen((doc) {
         if (doc.exists && mounted) {
-          final data = doc.data() as Map<String, dynamic>?;
+          final data = doc.data();
           setState(() {
             _nameController.text = data?['name'] ?? '';
             _bioController.text = data?['bio'] ?? '';
@@ -153,7 +156,6 @@ class _ProfilePageState extends State<ProfilePage> {
           });
         }
       });
-      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -246,7 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _saveProfile() async {
     if (!_formChanged) return;
-    
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -257,26 +259,26 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final batch = _firestore.batch();
       final userRef = _firestore.collection('users').doc(user.uid);
-      
+
       // Update user document
       batch.update(userRef, {
         'name': _nameController.text.trim(),
         'bio': _bioController.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      
+
       // Update author name in all books by this user
       final booksQuery = await _firestore
           .collection('books')
           .where('authorId', isEqualTo: user.uid)
           .get();
-          
+
       for (var doc in booksQuery.docs) {
         batch.update(doc.reference, {
           'authorName': _nameController.text.trim(),
         });
       }
-      
+
       // Commit the batch
       await batch.commit();
 
@@ -287,7 +289,7 @@ class _ProfilePageState extends State<ProfilePage> {
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Reset form changed state
         if (mounted) {
           setState(() {
@@ -666,4 +668,3 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-

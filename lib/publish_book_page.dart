@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class PublishBookPage extends StatefulWidget {
-  const PublishBookPage({Key? key}) : super(key: key);
+  const PublishBookPage({super.key});
 
   @override
   State<PublishBookPage> createState() => _PublishBookPageState();
@@ -164,7 +164,7 @@ class _PublishBookPageState extends State<PublishBookPage> {
               ),
               const SizedBox(height: 20),
               DropdownButtonFormField<String>(
-                value: _selectedGenre,
+                initialValue: _selectedGenre,
                 decoration: InputDecoration(
                   labelText: 'Genre of Book',
                   border: OutlineInputBorder(

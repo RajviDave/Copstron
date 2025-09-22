@@ -4,7 +4,7 @@ import 'package:cp_final/profile_page.dart';
 import 'package:flutter/material.dart';
 
 class AuthorDashboard extends StatefulWidget {
-  const AuthorDashboard({Key? key}) : super(key: key);
+  const AuthorDashboard({super.key});
 
   @override
   State<AuthorDashboard> createState() => _AuthorDashboardState();
@@ -70,7 +70,7 @@ class _AuthorDashboardState extends State<AuthorDashboard> {
 // --- PLACEHOLDER PAGES ---
 // These are simple and can be 'const'
 class DashboardHomePage extends StatelessWidget {
-  const DashboardHomePage({Key? key}) : super(key: key);
+  const DashboardHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class DashboardHomePage extends StatelessWidget {
 }
 
 class InboxPage extends StatelessWidget {
-  const InboxPage({Key? key}) : super(key: key);
+  const InboxPage({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' as intl;
 
 class EventsReader extends StatefulWidget {
-  const EventsReader({Key? key}) : super(key: key);
+  const EventsReader({super.key});
 
   @override
   State<EventsReader> createState() => _EventsReaderState();
@@ -14,7 +14,7 @@ class EventsReader extends StatefulWidget {
 class _EventsReaderState extends State<EventsReader> {
   final DatabaseService _database = DatabaseService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  bool _isLoading = true;
+  final bool _isLoading = true;
   String _searchQuery = '';
   String _selectedFilter = 'all';
 
@@ -86,14 +86,21 @@ class _EventsReaderState extends State<EventsReader> {
           // Filter activities based on search query and selected filter
           final activities = snapshot.data!.docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
-            final matchesSearch = _searchQuery.isEmpty ||
-                (data['title']?.toString().toLowerCase().contains(_searchQuery) ??
+            final matchesSearch =
+                _searchQuery.isEmpty ||
+                (data['title']?.toString().toLowerCase().contains(
+                      _searchQuery,
+                    ) ??
                     false) ||
-                (data['description']?.toString().toLowerCase().contains(_searchQuery) ??
+                (data['description']?.toString().toLowerCase().contains(
+                      _searchQuery,
+                    ) ??
                     false) ||
-                (data['authorName']?.toString().toLowerCase().contains(_searchQuery) ??
+                (data['authorName']?.toString().toLowerCase().contains(
+                      _searchQuery,
+                    ) ??
                     false);
-                    
+
             if (_selectedFilter == 'all') return matchesSearch;
             return matchesSearch && data['type'] == _selectedFilter;
           }).toList();
@@ -130,21 +137,28 @@ class _EventsReaderState extends State<EventsReader> {
         selectedColor: const Color(0xFF59AC77).withOpacity(0.2),
         checkmarkColor: const Color(0xFF59AC77),
         labelStyle: TextStyle(
-          color: _selectedFilter == value ? const Color(0xFF59AC77) : Colors.black,
-          fontWeight: _selectedFilter == value ? FontWeight.bold : FontWeight.normal,
+          color: _selectedFilter == value
+              ? const Color(0xFF59AC77)
+              : Colors.black,
+          fontWeight: _selectedFilter == value
+              ? FontWeight.bold
+              : FontWeight.normal,
         ),
       ),
     );
   }
 
-  Widget _buildActivityCard(Map<String, dynamic> activity, BuildContext context) {
+  Widget _buildActivityCard(
+    Map<String, dynamic> activity,
+    BuildContext context,
+  ) {
     final type = activity['type'] ?? 'activity';
     final title = activity['title']?.toString() ?? 'Untitled';
     final description = activity['description']?.toString() ?? '';
     final authorName = activity['authorName']?.toString() ?? 'Unknown Author';
     final imageUrl = activity['imageUrl'] as String?;
     final timestamp = activity['createdAt'] as Timestamp?;
-    final date = timestamp != null 
+    final date = timestamp != null
         ? intl.DateFormat('MMM d, y • h:mm a').format(timestamp.toDate())
         : 'Date not available';
 
@@ -178,9 +192,7 @@ class _EventsReaderState extends State<EventsReader> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -206,15 +218,12 @@ class _EventsReaderState extends State<EventsReader> {
                 ),
                 Text(
                   date,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
           ),
-          
+
           // Author info
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -236,9 +245,9 @@ class _EventsReaderState extends State<EventsReader> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Content image if available
           if (imageUrl != null && imageUrl.isNotEmpty)
             ClipRRect(
@@ -251,11 +260,15 @@ class _EventsReaderState extends State<EventsReader> {
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: 180,
                   color: Colors.grey[200],
-                  child: const Icon(Icons.broken_image, size: 40, color: Colors.grey),
+                  child: const Icon(
+                    Icons.broken_image,
+                    size: 40,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ),
-            
+
           // Title and description
           Padding(
             padding: const EdgeInsets.all(16),
@@ -279,11 +292,11 @@ class _EventsReaderState extends State<EventsReader> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Show book or talk specific details
                 if (type == 'book') ..._buildBookInfo(activity),
                 if (type == 'talk') ..._buildTalkInfo(activity),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -319,7 +332,7 @@ class _EventsReaderState extends State<EventsReader> {
       ),
     );
   }
-  
+
   List<Widget> _buildBookInfo(Map<String, dynamic> activity) {
     final List<Widget> widgets = [
       const SizedBox(height: 12),
@@ -327,10 +340,7 @@ class _EventsReaderState extends State<EventsReader> {
       const SizedBox(height: 12),
       const Text(
         'Book Details',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
       ),
       const SizedBox(height: 8),
     ];
@@ -359,12 +369,14 @@ class _EventsReaderState extends State<EventsReader> {
 
     // Add publish date if available
     if (activity['publishDate'] != null) {
-      widgets.add(_buildInfoRow('Published', activity['publishDate'].toString()));
+      widgets.add(
+        _buildInfoRow('Published', activity['publishDate'].toString()),
+      );
     }
 
     return widgets;
   }
-  
+
   List<Widget> _buildTalkInfo(Map<String, dynamic> activity) {
     final List<Widget> widgets = [
       const SizedBox(height: 12),
@@ -372,10 +384,7 @@ class _EventsReaderState extends State<EventsReader> {
       const SizedBox(height: 12),
       const Text(
         'Event Details',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-        ),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
       ),
       const SizedBox(height: 8),
     ];
@@ -402,11 +411,11 @@ class _EventsReaderState extends State<EventsReader> {
 
     return widgets;
   }
-  
+
   Widget _buildInfoRow(String label, String? value, {bool isLink = false}) {
     // Ensure value is never null
     final displayValue = value ?? 'Not specified';
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -416,10 +425,7 @@ class _EventsReaderState extends State<EventsReader> {
             width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           const SizedBox(width: 8),
@@ -443,9 +449,7 @@ class _EventsReaderState extends State<EventsReader> {
                   )
                 : Text(
                     displayValue,
-                    style: const TextStyle(
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(fontSize: 13),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -454,6 +458,6 @@ class _EventsReaderState extends State<EventsReader> {
       ),
     );
   }
-  
+
   // The _buildInfoRow method is already defined above
 }

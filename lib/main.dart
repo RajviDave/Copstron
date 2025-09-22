@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'signup.dart'; // Import your signup page
-import 'package:firebase_auth/firebase_auth.dart';
 
 // The main entry point for your application
 void main() async {

@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -176,7 +176,9 @@ class _LoginPageState extends State<LoginPage> {
                           prefixIcon: const Icon(Icons.lock_outline),
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: Colors.grey,
                             ),
                             onPressed: _togglePasswordVisibility,
@@ -244,7 +246,10 @@ class _LoginPageState extends State<LoginPage> {
                       OutlinedButton(
                         onPressed: _isLoading ? null : _handleGoogleSignIn,
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 16,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -261,7 +266,10 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(width: 12),
                             const Text(
                               'Continue with Google',
-                              style: TextStyle(color: Colors.black87, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                             ),
                           ],
                         ),

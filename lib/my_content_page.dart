@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class MyContentPage extends StatelessWidget {
-  const MyContentPage({Key? key}) : super(key: key);
+  const MyContentPage({super.key});
 
   @override
   Widget build(BuildContext context) {

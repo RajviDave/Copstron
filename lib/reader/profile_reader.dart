@@ -9,7 +9,7 @@ import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 
 class ProfileReader extends StatefulWidget {
-  const ProfileReader({Key? key}) : super(key: key);
+  const ProfileReader({super.key});
 
   @override
   _ProfileReaderState createState() => _ProfileReaderState();
@@ -27,30 +27,11 @@ class _ProfileReaderState extends State<ProfileReader> {
   File? _imageFile;
   late TextEditingController _usernameController;
   String? _profileImageUrl;
-  List<Map<String, dynamic>> _following = [];
-
   @override
   void initState() {
     super.initState();
     _usernameController = TextEditingController(text: 'Loading...');
-    _loadInitialData();
-  }
-
-  Future<void> _loadInitialData() async {
-    try {
-      await _loadUserData();
-      await _loadFollowing();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading profile: $e')),
-        );
-        setState(() {
-          _isLoading = false;
-          _usernameController.text = 'Error loading profile';
-        });
-      }
-    }
+    _loadUserData();
   }
 
   @override
@@ -63,23 +44,39 @@ class _ProfileReaderState extends State<ProfileReader> {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .get();
         if (userDoc.exists) {
+          final data = userDoc.data();
           setState(() {
-            _usernameController.text = userDoc['username'] ?? 'Reader User';
-            _profileImageUrl = userDoc['profileImage'];
+            _usernameController.text = data?['name'] ?? 'Reader User';
+            _profileImageUrl = data?['profileImage'];
           });
+
+          // Update local state with email if name is not set
+          if ((data?['name'] == null || data?['name'].isEmpty) &&
+              user.email != null) {
+            final username = user.email!.split('@')[0];
+            _usernameController.text = username;
+            // Save the generated username
+            await _saveGeneratedUsername(username);
+          }
+        } else {
+          // Create user document if it doesn't exist
+          await _createUserDocument(user);
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading user data: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading user data: $e')));
       }
       rethrow;
     } finally {
@@ -91,40 +88,6 @@ class _ProfileReaderState extends State<ProfileReader> {
     }
   }
 
-  Future<void> _loadFollowing() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final followingSnapshot = await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .collection('following')
-            .get();
-        
-        List<Map<String, dynamic>> followingList = [];
-        for (var doc in followingSnapshot.docs) {
-          followingList.add({
-            'id': doc.id,
-            'name': doc['name'] ?? 'Unknown Author',
-            'image': doc['image'],
-          });
-        }
-        
-        if (mounted) {
-          setState(() {
-            _following = followingList;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading following list: $e')),
-        );
-      }
-      rethrow;
-    }
-  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -135,6 +98,41 @@ class _ProfileReaderState extends State<ProfileReader> {
         _imageFile = File(pickedFile.path);
       });
       _saveChanges();
+    }
+  }
+
+  Future<void> _createUserDocument(User user) async {
+    try {
+      String username =
+          user.email?.split('@')[0] ?? 'user_${user.uid.substring(0, 6)}';
+
+      await _firestore.collection('users').doc(user.uid).set({
+        'name': username,
+        'email': user.email,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _usernameController.text = username;
+      });
+    } catch (e) {
+      print('Error creating user document: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _saveGeneratedUsername(String username) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).update({
+          'name': username,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      print('Error saving generated username: $e');
     }
   }
 
@@ -150,86 +148,47 @@ class _ProfileReaderState extends State<ProfileReader> {
       if (user == null) return;
 
       String? imageUrl = _profileImageUrl;
+      final fileName = _imageFile != null
+          ? path.basename(_imageFile!.path)
+          : null;
 
       // Upload new image if selected
       if (_imageFile != null) {
-        final fileName = path.basename(_imageFile!.path);
         final ref = _storage.ref().child(
-          'profile_images/${user.uid}/$fileName',
+          'profile_images/${user.uid}/${DateTime.now().millisecondsSinceEpoch}_$fileName',
         );
         await ref.putFile(_imageFile!);
         imageUrl = await ref.getDownloadURL();
       }
 
       // Update user data in Firestore
-      await _firestore.collection('users').doc(user.uid).update({
-        'username': _usernameController.text.trim(),
+      await _firestore.collection('users').doc(user.uid).set({
+        'name': _usernameController.text.trim(),
         if (imageUrl != null) 'profileImage': imageUrl,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       setState(() {
         _isEditing = false;
         _profileImageUrl = imageUrl;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _unfollowAuthor(String authorId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unfollow Author'),
-        content: const Text('Are you sure you want to unfollow this author?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Unfollow'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await _firestore
-            .collection('users')
-            .doc(user.uid)
-            .collection('following')
-            .doc(authorId)
-            .delete();
-
+      if (mounted) {
         setState(() {
-          _following.removeWhere((author) => author['id'] == authorId);
+          _isLoading = false;
         });
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Unfollowed author')));
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error unfollowing author: $e')));
       }
     }
   }
@@ -392,11 +351,15 @@ class _ProfileReaderState extends State<ProfileReader> {
                                 backgroundColor: Colors.grey[200],
                                 backgroundImage: _imageFile != null
                                     ? FileImage(_imageFile!)
-                                    : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                        ? NetworkImage(_profileImageUrl!)
-                                        : null) as ImageProvider?,
-                                child: _imageFile == null && 
-                                      (_profileImageUrl == null || _profileImageUrl!.isEmpty)
+                                    : (_profileImageUrl != null &&
+                                                  _profileImageUrl!.isNotEmpty
+                                              ? NetworkImage(_profileImageUrl!)
+                                              : null)
+                                          as ImageProvider?,
+                                child:
+                                    _imageFile == null &&
+                                        (_profileImageUrl == null ||
+                                            _profileImageUrl!.isEmpty)
                                     ? const Icon(
                                         Icons.person,
                                         size: 60,
@@ -477,50 +440,12 @@ class _ProfileReaderState extends State<ProfileReader> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildStatColumn('Books', '24'),
-                              _buildStatColumn(
-                                'Following',
-                                _following.length.toString(),
-                              ),
-                              _buildStatColumn('Followers', '1.2k'),
-                            ],
-                          ),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
 
-                    // Following Section
-                    if (_following.isNotEmpty)
-                      _buildSection('Following', [
-                        ..._following
-                            .map(
-                              (author) => ListTile(
-                                leading: CircleAvatar(
-                                  backgroundImage: author['image'] != null
-                                      ? NetworkImage(author['image'])
-                                      : null,
-                                  child: author['image'] == null
-                                      ? const Icon(Icons.person)
-                                      : null,
-                                ),
-                                title: Text(author['name']),
-                                trailing: TextButton(
-                                  onPressed: () =>
-                                      _unfollowAuthor(author['id']),
-                                  child: const Text(
-                                    'Unfollow',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ]),
-
-                    // Settings Section
+                    // Books Section
                     _buildSection('Settings', [
                       ListTile(
                         leading: const Icon(
@@ -536,7 +461,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                             });
                             // TODO: Save notification preference
                           },
-                          activeColor: const Color(0xFF59AC77),
+                          activeThumbColor: const Color(0xFF59AC77),
                         ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
@@ -696,7 +621,7 @@ class _ProfileReaderState extends State<ProfileReader> {
 }
 
 class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({Key? key}) : super(key: key);
+  const ChangePasswordScreen({super.key});
 
   @override
   _ChangePasswordScreenState createState() => _ChangePasswordScreenState();
