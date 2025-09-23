@@ -144,7 +144,11 @@ class _TrackedBookList extends StatelessWidget {
             return FutureBuilder<DocumentSnapshot>(
               future: _database.publicContentCollection.doc(trackedBook.id).get(),
               builder: (context, bookSnapshot) {
-                if (!bookSnapshot.hasData) {
+                if (bookSnapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox.shrink(); // Or a small loader
+                }
+                if (!bookSnapshot.hasData || !bookSnapshot.data!.exists) {
+                  // This book has been deleted by the author.
                   return const SizedBox.shrink();
                 }
                 final book = bookSnapshot.data!.data() as Map<String, dynamic>;
@@ -336,7 +340,11 @@ class _HistoryList extends StatelessWidget {
             return FutureBuilder<DocumentSnapshot>(
               future: _database.publicContentCollection.doc(historyDoc.id).get(),
               builder: (context, bookSnapshot) {
-                if (!bookSnapshot.hasData) {
+                if (bookSnapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox.shrink(); // Or a small loader
+                }
+                if (!bookSnapshot.hasData || !bookSnapshot.data!.exists) {
+                  // This book has been deleted by the author.
                   return const SizedBox.shrink();
                 }
                 final book = bookSnapshot.data!.data() as Map<String, dynamic>;

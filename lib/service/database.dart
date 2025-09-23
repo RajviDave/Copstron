@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class DatabaseService {
@@ -374,6 +373,186 @@ class DatabaseService {
       print('Error deleting content: $e');
       rethrow;
     }
+  }
+
+  // Analytics methods for author dashboard
+
+  // Get total likes count for author's content
+  Stream<int> getAuthorTotalLikesStream() {
+    if (uid == null) return Stream.value(0);
+    
+    return publicContentCollection
+        .where('authorId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+          int totalLikes = 0;
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>?;
+            final likes = data?['likes'] as List?;
+            totalLikes += likes?.length ?? 0;
+          }
+          return totalLikes;
+        });
+  }
+
+  // Get total comments count for author's content
+  Stream<int> getAuthorTotalCommentsStream() {
+    if (uid == null) return Stream.value(0);
+    
+    return publicContentCollection
+        .where('authorId', isEqualTo: uid)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          int totalComments = 0;
+          for (var doc in snapshot.docs) {
+            final commentsSnapshot = await doc.reference.collection('comments').get();
+            totalComments += commentsSnapshot.size;
+          }
+          return totalComments;
+        });
+  }
+
+  // Get engagement data for the last 30 days
+  Stream<Map<String, int>> getEngagementDataStream() {
+    if (uid == null) return Stream.value({});
+    
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+    
+    return publicContentCollection
+        .where('authorId', isEqualTo: uid)
+        .where('createdAt', isGreaterThan: Timestamp.fromDate(thirtyDaysAgo))
+        .snapshots()
+        .asyncMap((snapshot) async {
+          Map<String, int> dailyData = {};
+          
+          // Initialize the last 30 days with 0
+          for (int i = 0; i < 30; i++) {
+            final date = DateTime.now().subtract(Duration(days: i));
+            final dateKey = '${date.day}/${date.month}';
+            dailyData[dateKey] = 0;
+          }
+          
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>?;
+            final createdAt = data?['createdAt'] as Timestamp?;
+            
+            if (createdAt != null) {
+              final date = createdAt.toDate();
+              final dateKey = '${date.day}/${date.month}';
+              
+              // Count likes and comments for this content
+              final likes = data?['likes'] as List?;
+              final commentsSnapshot = await doc.reference.collection('comments').get();
+              
+              dailyData[dateKey] = (dailyData[dateKey] ?? 0) + 
+                  (likes?.length ?? 0) + commentsSnapshot.size;
+            }
+          }
+          
+          return dailyData;
+        });
+  }
+
+  // Get book tracking statistics for author's books
+  Stream<Map<String, int>> getBookTrackingStatsStream() {
+    if (uid == null) return Stream.value({});
+    
+    return publicContentCollection
+        .where('authorId', isEqualTo: uid)
+        .where('contentType', isEqualTo: 'Book')
+        .snapshots()
+        .asyncMap((snapshot) async {
+          int totalTracked = 0;
+          int totalCompleted = 0;
+          int totalInProgress = 0;
+          
+          for (var bookDoc in snapshot.docs) {
+            final bookId = bookDoc.id;
+            
+            // Count users who have tracked this book
+            final trackedQuery = await FirebaseFirestore.instance
+                .collectionGroup('trackedBooks')
+                .where(FieldPath.documentId, isEqualTo: bookId)
+                .get();
+            
+            // Count users who have completed this book
+            final completedQuery = await FirebaseFirestore.instance
+                .collectionGroup('readHistory')
+                .where(FieldPath.documentId, isEqualTo: bookId)
+                .get();
+            
+            totalTracked += trackedQuery.size;
+            totalCompleted += completedQuery.size;
+            totalInProgress += (trackedQuery.size - completedQuery.size).clamp(0, trackedQuery.size);
+          }
+          
+          return {
+            'tracked': totalTracked,
+            'completed': totalCompleted,
+            'inProgress': totalInProgress,
+          };
+        });
+  }
+
+  // Get recent activity (likes and comments) for author's content
+  Stream<List<Map<String, dynamic>>> getRecentActivityStream() {
+    if (uid == null) return Stream.value([]);
+    
+    return publicContentCollection
+        .where('authorId', isEqualTo: uid)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          List<Map<String, dynamic>> activities = [];
+          
+          for (var doc in snapshot.docs) {
+            final data = doc.data() as Map<String, dynamic>?;
+            final contentTitle = data?['name'] ?? data?['bookName'] ?? data?['text'] ?? 'Untitled';
+            final contentType = data?['contentType'] ?? 'Unknown';
+            
+            // Get recent comments
+            final commentsSnapshot = await doc.reference
+                .collection('comments')
+                .orderBy('createdAt', descending: true)
+                .limit(5)
+                .get();
+            
+            for (var commentDoc in commentsSnapshot.docs) {
+              final commentData = commentDoc.data();
+              final userData = await getUserDataById(commentData['userId']);
+              
+              activities.add({
+                'type': 'comment',
+                'contentTitle': contentTitle,
+                'contentType': contentType,
+                'userName': userData?['name'] ?? 'Unknown User',
+                'text': commentData['text'],
+                'timestamp': commentData['createdAt'],
+              });
+            }
+            
+            // Add likes (we'll show recent ones based on content creation)
+            final likes = data?['likes'] as List?;
+            if (likes != null && likes.isNotEmpty) {
+              activities.add({
+                'type': 'likes',
+                'contentTitle': contentTitle,
+                'contentType': contentType,
+                'count': likes.length,
+                'timestamp': data?['createdAt'],
+              });
+            }
+          }
+          
+          // Sort by timestamp and limit to recent 20
+          activities.sort((a, b) {
+            final aTime = a['timestamp'] as Timestamp?;
+            final bTime = b['timestamp'] as Timestamp?;
+            if (aTime == null || bTime == null) return 0;
+            return bTime.compareTo(aTime);
+          });
+          
+          return activities.take(20).toList();
+        });
   }
 }
 
