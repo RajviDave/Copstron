@@ -318,6 +318,20 @@ class DatabaseService {
   Stream<QuerySnapshot> getHistoryStream(String userId) {
     return userCollection.doc(userId).collection('readHistory').orderBy('finishedAt', descending: true).snapshots();
   }
+
+  // Delete an event (announcement, book talk, etc.)
+  Future<void> deleteEvent(String eventId, String authorId) async {
+    if (uid == null || uid != authorId) {
+      throw Exception('You do not have permission to delete this event');
+    }
+
+    try {
+      await publicContentCollection.doc(eventId).delete();
+    } catch (e) {
+      print('Error deleting event: $e');
+      rethrow;
+    }
+  }
 }
 
 
