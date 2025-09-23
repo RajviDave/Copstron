@@ -1,5 +1,5 @@
 import 'package:cp_final/reader/home_reader.dart';
-import 'package:cp_final/reader/explore_reader.dart';
+import 'package:cp_final/reader/explore_page.dart';
 import 'package:cp_final/reader/library_reader.dart';
 import 'package:cp_final/reader/events_reader_clean.dart';
 import 'package:cp_final/reader/profile_reader.dart';
@@ -19,7 +19,7 @@ class _ReaderDashboardState extends State<ReaderDashboard> {
 
   static final List<Widget> _pages = <Widget>[
     const HomeReader(),
-    const ExploreReader(),
+    const ExplorePage(),
     const LibraryReader(),
     const EventsReader(),
     const ProfileReader(), // This is now the correct ProfileReader from reader/profile_reader.dart

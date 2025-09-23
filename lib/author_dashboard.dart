@@ -23,7 +23,6 @@ class _AuthorDashboardState extends State<AuthorDashboard> {
     const DashboardStatsPage(), // New stats page
     const MyContentPage(),
     const CreatePostPage(),
-    const InboxPage(),
     const ProfilePage(),
   ];
 
@@ -49,7 +48,6 @@ class _AuthorDashboardState extends State<AuthorDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.library_books), label: 'My Content'),
           BottomNavigationBarItem(icon: Icon(Icons.add_circle, size: 40), label: 'Create'),
-          BottomNavigationBarItem(icon: Icon(Icons.inbox), label: 'Inbox'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
@@ -767,20 +765,3 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// Placeholder for the Inbox page
-class InboxPage extends StatelessWidget {
-  const InboxPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inbox'),
-        backgroundColor: const Color(0xFF59AC77),
-      ),
-      body: const Center(
-        child: Text('Inbox Page - Reviews and comments will go here.'),
-      ),
-    );
-  }
-}

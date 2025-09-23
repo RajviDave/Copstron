@@ -554,6 +554,65 @@ class DatabaseService {
           return activities.take(20).toList();
         });
   }
+
+  // Explore page methods for readers
+
+  // Get books by genre with real-time data
+  Stream<QuerySnapshot> getBooksByGenre(String genre) {
+    return publicContentCollection
+        .where('contentType', isEqualTo: 'Book')
+        .where('genre', isEqualTo: genre)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get new releases (latest 4 books)
+  Stream<QuerySnapshot> getNewReleases() {
+    return publicContentCollection
+        .where('contentType', isEqualTo: 'Book')
+        .orderBy('createdAt', descending: true)
+        .limit(4)
+        .snapshots();
+  }
+
+  // Get top rated books (books with most likes)
+  Stream<QuerySnapshot> getTopRatedBooks() {
+    return publicContentCollection
+        .where('contentType', isEqualTo: 'Book')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get all unique genres from published books
+  Future<List<String>> getAvailableGenres() async {
+    try {
+      final snapshot = await publicContentCollection
+          .where('contentType', isEqualTo: 'Book')
+          .get();
+      
+      Set<String> genres = {};
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>?;
+        final genre = data?['genre'] as String?;
+        if (genre != null && genre.isNotEmpty) {
+          genres.add(genre);
+        }
+      }
+      
+      return genres.toList()..sort();
+    } catch (e) {
+      print('Error getting available genres: $e');
+      return [];
+    }
+  }
+
+  // Get all books for explore page
+  Stream<QuerySnapshot> getAllBooks() {
+    return publicContentCollection
+        .where('contentType', isEqualTo: 'Book')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
 }
 
 
