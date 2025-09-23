@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cp_final/reader/genre_books_page.dart';
 import 'package:cp_final/reader/new_releases_page.dart';
 import 'package:cp_final/reader/top_rated_page.dart';
@@ -56,11 +55,11 @@ class _ExplorePageState extends State<ExplorePage> {
               // Welcome Section
               _buildWelcomeSection(),
               const SizedBox(height: 24),
-              
+
               // Quick Actions Section
               _buildQuickActionsSection(),
               const SizedBox(height: 24),
-              
+
               // Genres Section
               _buildGenresSection(),
             ],
@@ -95,10 +94,7 @@ class _ExplorePageState extends State<ExplorePage> {
           const SizedBox(height: 8),
           const Text(
             'Discover new stories, explore different genres, and find your next favorite read',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 16),
           Row(
@@ -107,10 +103,7 @@ class _ExplorePageState extends State<ExplorePage> {
               const SizedBox(width: 8),
               Text(
                 '${_genres.length} genres available',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ],
           ),
@@ -125,10 +118,7 @@ class _ExplorePageState extends State<ExplorePage> {
       children: [
         const Text(
           'Quick Access',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         Row(
@@ -206,10 +196,7 @@ class _ExplorePageState extends State<ExplorePage> {
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -225,10 +212,7 @@ class _ExplorePageState extends State<ExplorePage> {
       children: [
         const Text(
           'Browse by Genre',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         if (_isLoadingGenres)
@@ -283,7 +267,7 @@ class _ExplorePageState extends State<ExplorePage> {
       Colors.indigo,
       Colors.pink,
     ];
-    
+
     final color = colors[genre.hashCode % colors.length];
 
     return Card(
@@ -312,11 +296,7 @@ class _ExplorePageState extends State<ExplorePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  _getGenreIcon(genre),
-                  color: color,
-                  size: 24,
-                ),
+                Icon(_getGenreIcon(genre), color: color, size: 24),
                 const SizedBox(height: 8),
                 Text(
                   genre,
@@ -334,7 +314,6 @@ class _ExplorePageState extends State<ExplorePage> {
       ),
     );
   }
-
 
   IconData _getGenreIcon(String genre) {
     switch (genre.toLowerCase()) {

@@ -102,7 +102,7 @@ class _MyContentPageState extends State<MyContentPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Content'),
-        backgroundColor: const Color(0xFF59AC77),
+        backgroundColor: const Color(0xFF0d4b34),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(kToolbarHeight),
           child: Padding(
@@ -245,133 +245,273 @@ class _BookCard extends StatelessWidget {
     final genre = data['genre'] as String?;
     final publisher = data['publisher'] as String?;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Image section
-          if (imageUrl != null && imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: Image.network(
-                imageUrl,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 200,
-                  color: Colors.grey[200],
+          // Author header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: const Color(0xFF0d4b34).withOpacity(0.1),
+                  radius: 20,
                   child: const Icon(
-                    Icons.broken_image,
-                    size: 48,
-                    color: Colors.grey,
+                    Icons.person,
+                    color: Color(0xFF0d4b34),
+                    size: 20,
                   ),
                 ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: status == 'Published'
-                            ? Colors.green.shade100
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'You',
                         style: TextStyle(
-                          color: status == 'Published'
-                              ? Colors.green.shade800
-                              : Colors.grey.shade700,
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        dateString,
+                        style: TextStyle(
+                          color: Colors.grey[600],
                           fontSize: 12,
                         ),
                       ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: onDelete,
-                      tooltip: 'Delete',
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.book, color: Color(0xFF59AC77)),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "BOOK",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF59AC77),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: status == 'Published'
+                        ? const Color(0xFF0d4b34).withOpacity(0.1)
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.book,
+                        size: 14,
+                        color: status == 'Published'
+                            ? const Color(0xFF0d4b34)
+                            : Colors.grey[600],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  data['name'] ?? 'No Title',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                      const SizedBox(width: 4),
+                      Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          color: status == 'Published'
+                              ? const Color(0xFF0d4b34)
+                              : Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (genre != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    genre,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-                if (publisher != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'Published by: $publisher',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                Text(
-                  data['description'] ?? 'No description provided.',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.grey[800]),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      dateString,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      onTap: onDelete,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
+          // Content section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data['name'] ?? 'No Title',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data['description'] ?? 'No description provided.',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (genre != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0d4b34).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Text(
+                          genre,
+                          style: const TextStyle(
+                            color: Color(0xFF0d4b34),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    if (publisher != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Text(
+                          publisher,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Image section
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 200,
+                    color: Colors.grey[100],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // Engagement section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey[200]!),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildEngagementButton(
+                    icon: Icons.favorite_border,
+                    label: 'Like',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.comment_outlined,
+                    label: 'Comment',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.share_outlined,
+                    label: 'Share',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEngagementButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -398,87 +538,207 @@ class _AnnouncementCard extends StatelessWidget {
     final imageUrl = data['imageUrl'] as String?;
     final authorName = data['authorName'] as String?;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Image section if available
-          if (imageUrl != null && imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: Image.network(
-                imageUrl,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 200,
-                  color: Colors.grey[200],
+          // Author header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.orange.withOpacity(0.1),
+                  radius: 20,
                   child: const Icon(
-                    Icons.broken_image,
-                    size: 48,
-                    color: Colors.grey,
+                    Icons.campaign,
+                    color: Colors.orange,
+                    size: 20,
                   ),
                 ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.campaign, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "ANNOUNCEMENT",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                        letterSpacing: 0.8,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'You',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    if (authorName != null)
                       Text(
-                        'By $authorName',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        dateString,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
                       ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: onDelete,
-                      tooltip: 'Delete',
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                if (text != null && text.isNotEmpty)
-                  Text(text, style: const TextStyle(fontSize: 16, height: 1.5)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      dateString,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.campaign,
+                        size: 14,
+                        color: Colors.orange,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'ANNOUNCEMENT',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      onTap: onDelete,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
+          // Content section
+          if (text != null && text.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.4,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ),
+          // Image section
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 200,
+                    color: Colors.grey[100],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // Engagement section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey[200]!),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildEngagementButton(
+                    icon: Icons.favorite_border,
+                    label: 'Like',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.comment_outlined,
+                    label: 'Comment',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.share_outlined,
+                    label: 'Share',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEngagementButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -507,47 +767,90 @@ class _BookTalkCard extends StatelessWidget {
     final location = data['location'] as String?;
     final isOnline = eventType == 'Online';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header with event type
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isOnline ? Colors.blue.shade50 : Colors.purple.shade50,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-            ),
+          // Author header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
-                Icon(
-                  isOnline ? Icons.videocam : Icons.location_on,
-                  color: isOnline ? Colors.blue : Colors.purple,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  isOnline ? 'ONLINE EVENT' : 'IN-PERSON EVENT',
-                  style: TextStyle(
+                CircleAvatar(
+                  backgroundColor: (isOnline ? Colors.blue : Colors.purple).withOpacity(0.1),
+                  radius: 20,
+                  child: Icon(
+                    isOnline ? Icons.videocam : Icons.location_on,
                     color: isOnline ? Colors.blue : Colors.purple,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
+                    size: 20,
                   ),
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: onDelete,
-                  tooltip: 'Delete',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'You',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        dateString,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                if (timestamp != null &&
-                    timestamp.toDate().isAfter(DateTime.now()))
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isOnline ? Colors.blue : Colors.purple).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isOnline ? Icons.videocam : Icons.location_on,
+                        size: 14,
+                        color: isOnline ? Colors.blue : Colors.purple,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'BOOK TALK',
+                        style: TextStyle(
+                          color: isOnline ? Colors.blue : Colors.purple,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (timestamp != null && timestamp.toDate().isAfter(DateTime.now()))
                   Container(
+                    margin: const EdgeInsets.only(left: 8),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 4,
@@ -566,11 +869,27 @@ class _BookTalkCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      onTap: onDelete,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red, size: 20),
+                          SizedBox(width: 8),
+                          Text('Delete'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
+          // Content section
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -578,7 +897,7 @@ class _BookTalkCard extends StatelessWidget {
                 Text(
                   bookName,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     height: 1.3,
                   ),
@@ -586,107 +905,79 @@ class _BookTalkCard extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 // Authors
-                if (authors != null && authors.isNotEmpty) ...[
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.person_outline,
-                        size: 16,
-                        color: Colors.grey[600],
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          authors,
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ],
+                if (authors != null && authors.isNotEmpty)
+                  Text(
+                    'by $authors',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 15,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                ],
+                const SizedBox(height: 12),
 
-                // Event details
+                // Event details card
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
+                    color: (isOnline ? Colors.blue : Colors.purple).withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: (isOnline ? Colors.blue : Colors.purple).withOpacity(0.2),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Date & Time
                       Row(
                         children: [
                           Icon(
                             Icons.calendar_today,
-                            size: 16,
-                            color: Colors.grey[700],
+                            size: 18,
+                            color: isOnline ? Colors.blue : Colors.purple,
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Date & Time',
+                            'Event Details',
                             style: TextStyle(
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.w500,
+                              color: isOnline ? Colors.blue : Colors.purple,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 12),
                       Text(
                         dateString,
                         style: const TextStyle(
                           fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Location/Online Link
+                      const SizedBox(height: 8),
                       Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(
                             isOnline ? Icons.link : Icons.location_on,
                             size: 16,
-                            color: Colors.grey[700],
+                            color: Colors.grey[600],
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isOnline ? 'Online Link' : 'Location',
-                                  style: TextStyle(
-                                    color: Colors.grey[700],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                if (location != null && location.isNotEmpty)
-                                  Text(
-                                    location,
-                                    style: const TextStyle(fontSize: 14),
-                                  )
-                                else
-                                  Text(
-                                    isOnline
-                                        ? 'Link will be provided'
-                                        : 'Location to be announced',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[500],
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                              ],
+                            child: Text(
+                              location != null && location.isNotEmpty
+                                  ? location
+                                  : (isOnline
+                                      ? 'Link will be provided'
+                                      : 'Location to be announced'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                                fontStyle: location == null || location.isEmpty
+                                    ? FontStyle.italic
+                                    : FontStyle.normal,
+                              ),
                             ),
                           ),
                         ],
@@ -695,29 +986,31 @@ class _BookTalkCard extends StatelessWidget {
                   ),
                 ),
 
-                // Action buttons
-                if (timestamp != null &&
-                    timestamp.toDate().isAfter(DateTime.now()))
+                // Action button
+                if (timestamp != null && timestamp.toDate().isAfter(DateTime.now()))
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // TODO: Implement join/register action
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // TODO: Implement join/register action
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isOnline ? Colors.blue : Colors.purple,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.event_available, size: 20),
-                      label: Text(
-                        isOnline ? 'JOIN EVENT' : 'REGISTER',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                        icon: const Icon(Icons.event_available, size: 20),
+                        label: Text(
+                          isOnline ? 'JOIN EVENT' : 'REGISTER',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
@@ -725,7 +1018,72 @@ class _BookTalkCard extends StatelessWidget {
               ],
             ),
           ),
+          // Engagement section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey[200]!),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildEngagementButton(
+                    icon: Icons.favorite_border,
+                    label: 'Like',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.comment_outlined,
+                    label: 'Comment',
+                    onTap: () {},
+                  ),
+                  _buildEngagementButton(
+                    icon: Icons.share_outlined,
+                    label: 'Share',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEngagementButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: Colors.grey[600],
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

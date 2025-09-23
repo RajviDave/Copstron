@@ -51,7 +51,7 @@ class _AuthorDashboardState extends State<AuthorDashboard> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF59AC77),
+        selectedItemColor: const Color(0xFF0d4b34),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         onTap: _onItemTapped,
@@ -84,7 +84,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Author Analytics Dashboard'),
-        backgroundColor: const Color(0xFF59AC77),
+        backgroundColor: const Color(0xFF0d4b34),
         elevation: 0,
       ),
       body: RefreshIndicator(
@@ -119,7 +119,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF59AC77), Color(0xFF4A9B6B)],
+          colors: [Color(0xFF0d4b34), Color(0xFF1a5c42)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -176,9 +176,9 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.5,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.3,
           children: [
             StreamBuilder<int>(
               stream: _databaseService.getBookCountStream(),
@@ -245,7 +245,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.bar_chart, color: Color(0xFF59AC77)),
+                const Icon(Icons.bar_chart, color: Color(0xFF0d4b34)),
                 const SizedBox(width: 8),
                 const Text(
                   'Engagement Trends (Last 7 Days)',
@@ -339,7 +339,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                           barRods: [
                             BarChartRodData(
                               toY: entry.value.value.toDouble(),
-                              color: const Color(0xFF59AC77),
+                              color: const Color(0xFF0d4b34),
                               width: 16,
                               borderRadius: const BorderRadius.only(
                                 topLeft: Radius.circular(4),
@@ -371,7 +371,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.pie_chart, color: Color(0xFF59AC77)),
+                const Icon(Icons.pie_chart, color: Color(0xFF0d4b34)),
                 const SizedBox(width: 8),
                 const Text(
                   'Reader Progress Statistics',
@@ -483,7 +483,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF59AC77).withOpacity(0.1),
+                              color: const Color(0xFF0d4b34).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Column(
@@ -493,7 +493,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                                   'Total Tracked',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF59AC77),
+                                    color: Color(0xFF0d4b34),
                                   ),
                                 ),
                                 Text(
@@ -530,7 +530,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           children: [
             Row(
               children: [
-                const Icon(Icons.notifications_active, color: Color(0xFF59AC77)),
+                const Icon(Icons.notifications_active, color: Color(0xFF0d4b34)),
                 const SizedBox(width: 8),
                 const Text(
                   'Recent Activity',

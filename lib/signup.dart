@@ -15,7 +15,7 @@ class SignUpPage extends StatefulWidget {
 
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
-  static const Color primaryColor = Color(0xFF59AC77);
+  static const Color primaryColor = Color(0xFF0d4b34);
   final TextEditingController namecontroller = TextEditingController();
   final TextEditingController passwordcontroller = TextEditingController();
   final TextEditingController emailcontroller = TextEditingController();
@@ -123,7 +123,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -161,7 +161,7 @@ class _SignUpPageState extends State<SignUpPage> {
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: primaryColor,
                         ),
                       ),
                       const SizedBox(height: 30),
@@ -248,7 +248,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.grey[100],
+                          fillColor: Colors.grey[50],
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 16,
                             horizontal: 20,
@@ -305,25 +305,15 @@ class _SignUpPageState extends State<SignUpPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          side: const BorderSide(color: Colors.grey, width: 1),
+                          side: BorderSide(color: primaryColor.withOpacity(0.3), width: 1.5),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.network(
-                              'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg',
-                              height: 10,
-                              width: 10,
-                            ),
-                            const SizedBox(width: 12),
-                            const Text(
-                              'Sign up with Google',
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
+                        child: const Text(
+                          'LOGIN OR SIGNUP with Google',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       const Spacer(),

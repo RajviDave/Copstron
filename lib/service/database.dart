@@ -5,15 +5,12 @@ class DatabaseService {
   final String? uid;
   DatabaseService({this.uid});
 
-  // Reference to the users collection
   final CollectionReference userCollection = FirebaseFirestore.instance
       .collection('users');
 
-  // Reference to the public content collection
   final CollectionReference publicContentCollection = FirebaseFirestore.instance
       .collection('publicContent');
 
-  // Get user's private content collection
   CollectionReference get privateContentCollection {
     if (uid == null) {
       throw Exception('User ID is required to access private content');

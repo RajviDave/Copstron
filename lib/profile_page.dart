@@ -30,7 +30,6 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _formChanged = false;
   int _bookCount = 0;
   int _readerCount = 0;
-  double _rating = 0.0;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -138,7 +137,6 @@ class _ProfilePageState extends State<ProfilePage> {
           _profileImageUrl = data?['profileImage'];
           // We'll get book count from the stream, so no need to set it here
           _readerCount = data?['readerCount'] ?? 0;
-          _rating = (data?['rating'] ?? 0.0).toDouble();
         });
       }
 
@@ -151,7 +149,6 @@ class _ProfilePageState extends State<ProfilePage> {
             _bioController.text = data?['bio'] ?? '';
             _profileImageUrl = data?['profileImage'];
             _readerCount = data?['readerCount'] ?? 0;
-            _rating = (data?['rating'] ?? 0.0).toDouble();
           });
         }
       });
@@ -421,7 +418,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF59AC77);
+    const Color primaryColor = Color(0xFF0d4b34);
 
     return Scaffold(
       appBar: AppBar(
@@ -436,12 +433,13 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(width: 8),
         ],
       ),
+      backgroundColor: Colors.grey[50],
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Form(
               key: _formKey,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
                   children: [
                     // --- Author Identity Section ---
@@ -544,12 +542,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildStatColumn('Books', '$_bookCount'),
-                          _buildStatColumn('Readers', '$_readerCount'),
-                          _buildStatColumn(
-                            'Rating',
-                            '${_rating.toStringAsFixed(1)} ★',
-                          ),
+                          _buildStatColumn('Books', '$_bookCount', Icons.book, primaryColor),
+                          _buildStatColumn('Followers', '$_readerCount', Icons.people, Colors.blue),
+                          _buildStatColumn('Posts', '${_bookCount + 5}', Icons.article, Colors.orange),
                         ],
                       ),
                     ),
@@ -599,10 +594,19 @@ class _ProfilePageState extends State<ProfilePage> {
   // --- HELPER WIDGETS ---
 
   Widget _buildProfileCard({required Widget child}) {
-    return Card(
-      elevation: 2.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(padding: const EdgeInsets.all(16.0), child: child),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(padding: const EdgeInsets.all(20.0), child: child),
     );
   }
 
@@ -628,19 +632,40 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatColumn(String title, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-        ),
-      ],
+  Widget _buildStatColumn(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 24,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

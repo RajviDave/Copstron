@@ -313,8 +313,10 @@ class _ProfileReaderState extends State<ProfileReader> {
     final email = user?.email ?? 'user@example.com';
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text('My Profile'),
+        backgroundColor: const Color(0xFF0d4b34),
         actions: [
           if (_isEditing)
             TextButton(
@@ -339,8 +341,19 @@ class _ProfileReaderState extends State<ProfileReader> {
                   children: [
                     // Profile Header
                     Container(
+                      margin: const EdgeInsets.all(16),
                       padding: const EdgeInsets.all(24),
-                      color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         children: [
                           Stack(
@@ -387,7 +400,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                                     onTap: _pickImage,
                                     child: const Icon(
                                       Icons.camera_alt,
-                                      color: Color(0xFF59AC77),
+                                      color: Color(0xFF0d4b34),
                                       size: 20,
                                     ),
                                   ),
@@ -445,12 +458,50 @@ class _ProfileReaderState extends State<ProfileReader> {
                       ),
                     ),
 
-                    // Books Section
+                    // Reading Stats Section
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Reading Stats',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildStatCard('Books Read', '12', Icons.book, const Color(0xFF0d4b34)),
+                              _buildStatCard('Saved', '8', Icons.bookmark, Colors.blue),
+                              _buildStatCard('Following', '5', Icons.people, Colors.orange),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Settings Section
                     _buildSection('Settings', [
                       ListTile(
                         leading: const Icon(
                           Icons.notifications_none,
-                          color: Color(0xFF59AC77),
+                          color: Color(0xFF0d4b34),
                         ),
                         title: const Text('Push Notifications'),
                         trailing: Switch(
@@ -461,14 +512,14 @@ class _ProfileReaderState extends State<ProfileReader> {
                             });
                             // TODO: Save notification preference
                           },
-                          activeThumbColor: const Color(0xFF59AC77),
+                          activeThumbColor: const Color(0xFF0d4b34),
                         ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         leading: const Icon(
                           Icons.lock_outline,
-                          color: Color(0xFF59AC77),
+                          color: Color(0xFF0d4b34),
                         ),
                         title: const Text('Change Password'),
                         trailing: const Icon(
@@ -481,7 +532,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                       ListTile(
                         leading: const Icon(
                           Icons.logout,
-                          color: Color(0xFF59AC77),
+                          color: Color(0xFF0d4b34),
                         ),
                         title: const Text('Logout'),
                         onTap: _logout,
@@ -560,12 +611,18 @@ class _ProfileReaderState extends State<ProfileReader> {
             ),
           ),
         ),
-        Card(
+        Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey[200]!, width: 1),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(children: children),
         ),
@@ -583,7 +640,7 @@ class _ProfileReaderState extends State<ProfileReader> {
     return Column(
       children: [
         ListTile(
-          leading: Icon(icon, color: const Color(0xFF59AC77)),
+          leading: Icon(icon, color: const Color(0xFF0d4b34)),
           title: Text(title),
           trailing:
               trailingWidget ??
@@ -610,12 +667,49 @@ class _ProfileReaderState extends State<ProfileReader> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF59AC77),
+            color: Color(0xFF0d4b34),
           ),
         ),
         const SizedBox(height: 4),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: 24,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -824,7 +918,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ElevatedButton(
                       onPressed: _changePassword,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF59AC77),
+                        backgroundColor: const Color(0xFF0d4b34),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
