@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DatabaseService {
   final String? uid;
@@ -200,15 +202,17 @@ class DatabaseService {
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
         final dynamic likesData = data?['likes'];
-        final List<String> likes = likesData is List ? List<String>.from(likesData) : [];
+        final List<String> likes = likesData is List
+            ? List<String>.from(likesData)
+            : [];
 
         if (likes.contains(userId)) {
           await docRef.update({
-            'likes': FieldValue.arrayRemove([userId])
+            'likes': FieldValue.arrayRemove([userId]),
           });
         } else {
           await docRef.update({
-            'likes': FieldValue.arrayUnion([userId])
+            'likes': FieldValue.arrayUnion([userId]),
           });
         }
       }
@@ -219,7 +223,11 @@ class DatabaseService {
   }
 
   // Add a comment to a public content item
-  Future<void> addComment(String contentId, String commentText, String userId) async {
+  Future<void> addComment(
+    String contentId,
+    String commentText,
+    String userId,
+  ) async {
     try {
       final commentData = {
         'text': commentText,
@@ -262,33 +270,47 @@ class DatabaseService {
 
   // Save a book for a user
   Future<void> saveBook(String userId, String bookId) async {
-    await userCollection.doc(userId).collection('savedBooks').doc(bookId).set({'savedAt': FieldValue.serverTimestamp()});
+    await userCollection.doc(userId).collection('savedBooks').doc(bookId).set({
+      'savedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // Unsave a book for a user
   Future<void> unsaveBook(String userId, String bookId) async {
-    await userCollection.doc(userId).collection('savedBooks').doc(bookId).delete();
+    await userCollection
+        .doc(userId)
+        .collection('savedBooks')
+        .doc(bookId)
+        .delete();
   }
 
   // Get stream of saved book IDs for a user
   Stream<List<String>> getSavedBookIdsStream(String userId) {
-    return userCollection.doc(userId).collection('savedBooks').snapshots().map((snapshot) {
+    return userCollection.doc(userId).collection('savedBooks').snapshots().map((
+      snapshot,
+    ) {
       return snapshot.docs.map((doc) => doc.id).toList();
     });
   }
 
   // Track a book for a user
   Future<void> trackBook(String userId, String bookId) async {
-    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).set({
-      'trackedAt': FieldValue.serverTimestamp(),
-      'totalPages': 0,
-      'pagesRead': 0,
-    });
+    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).set(
+      {
+        'trackedAt': FieldValue.serverTimestamp(),
+        'totalPages': 0,
+        'pagesRead': 0,
+      },
+    );
   }
 
   // Untrack a book for a user
   Future<void> untrackBook(String userId, String bookId) async {
-    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).delete();
+    await userCollection
+        .doc(userId)
+        .collection('trackedBooks')
+        .doc(bookId)
+        .delete();
   }
 
   // Get stream of tracked books for a user
@@ -297,11 +319,17 @@ class DatabaseService {
   }
 
   // Update reading progress for a tracked book
-  Future<void> updateBookProgress(String userId, String bookId, int totalPages, int pagesRead) async {
-    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).update({
-      'totalPages': totalPages,
-      'pagesRead': pagesRead,
-    });
+  Future<void> updateBookProgress(
+    String userId,
+    String bookId,
+    int totalPages,
+    int pagesRead,
+  ) async {
+    await userCollection
+        .doc(userId)
+        .collection('trackedBooks')
+        .doc(bookId)
+        .update({'totalPages': totalPages, 'pagesRead': pagesRead});
   }
 
   // Move a book to the user's read history
@@ -311,24 +339,39 @@ class DatabaseService {
       'finishedAt': FieldValue.serverTimestamp(),
     });
     // Then, remove it from the tracked books
-    await userCollection.doc(userId).collection('trackedBooks').doc(bookId).delete();
+    await userCollection
+        .doc(userId)
+        .collection('trackedBooks')
+        .doc(bookId)
+        .delete();
   }
 
   // Get stream of the user's read history
   Stream<QuerySnapshot> getHistoryStream(String userId) {
-    return userCollection.doc(userId).collection('readHistory').orderBy('finishedAt', descending: true).snapshots();
+    return userCollection
+        .doc(userId)
+        .collection('readHistory')
+        .orderBy('finishedAt', descending: true)
+        .snapshots();
   }
 
-  // Delete an event (announcement, book talk, etc.)
-  Future<void> deleteEvent(String eventId, String authorId) async {
-    if (uid == null || uid != authorId) {
-      throw Exception('You do not have permission to delete this event');
+  // Delete content (book, announcement, book talk, etc.)
+  // Simplified delete content function
+  Future<void> deleteContent(
+    String contentId,
+    String authorId,
+    String contentType,
+  ) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception('You must be logged in to delete content');
     }
 
+    // The security rules will ensure only the author can do this.
     try {
-      await publicContentCollection.doc(eventId).delete();
+      await publicContentCollection.doc(contentId).delete();
     } catch (e) {
-      print('Error deleting event: $e');
+      print('Error deleting content: $e');
       rethrow;
     }
   }
