@@ -182,9 +182,9 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.4,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: 1.6,
           children: [
             StreamBuilder<int>(
               stream: _databaseService.getBookCountStream(),
@@ -277,8 +277,10 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                 // Take last 7 days
                 final last7Days = sortedEntries.take(7).toList();
 
-                return SizedBox(
+                return Container(
                   height: 200,
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 4.0),
                   child: BarChart(
                     BarChartData(
                       alignment: BarChartAlignment.spaceAround,
@@ -323,7 +325,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                         leftTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            reservedSize: 28,
+                            reservedSize: 24,
                             interval: 1,
                             getTitlesWidget: (double value, TitleMeta meta) {
                               return Text(
@@ -713,14 +715,14 @@ class _StatCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: color.withOpacity(0.1),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(
               children: [
-                Icon(icon, size: 32, color: color),
+                Icon(icon, size: 28, color: color),
                 const Spacer(),
                 if (isLoading)
                   SizedBox(
@@ -733,7 +735,7 @@ class _StatCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: isLoading
@@ -750,16 +752,16 @@ class _StatCard extends StatelessWidget {
                       value,
                       key: ValueKey(value),
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               title,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.black54,
                 fontWeight: FontWeight.w500,
               ),
