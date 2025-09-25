@@ -83,7 +83,13 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Author Analytics Dashboard'),
+        title: const Text(
+          'Author Analytics Dashboard',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF0d4b34),
         elevation: 0,
       ),
@@ -176,9 +182,9 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.3,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 1.4,
           children: [
             StreamBuilder<int>(
               stream: _databaseService.getBookCountStream(),
@@ -253,7 +259,7 @@ class _DashboardStatsPageState extends State<DashboardStatsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             StreamBuilder<Map<String, int>>(
               stream: _databaseService.getEngagementDataStream(),
               builder: (context, snapshot) {

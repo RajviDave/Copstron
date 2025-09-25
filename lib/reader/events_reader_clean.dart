@@ -163,10 +163,15 @@ class _EventsReaderState extends State<EventsReader> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Latest Updates'),
+        title: const Text(
+          'Latest Updates',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF59AC77),
+        backgroundColor: const Color(0xFF59AC77),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(100),
           child: Padding(

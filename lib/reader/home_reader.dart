@@ -7,10 +7,15 @@ class HomeReader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Feed'),
+        title: const Text(
+          'Your Feed',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF59AC77),
+        backgroundColor: const Color(0xFF59AC77),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),

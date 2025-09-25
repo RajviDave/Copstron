@@ -9,10 +9,15 @@ class ExploreReader extends StatelessWidget {
       length: 4,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Explore'),
+          title: const Text(
+            'Explore',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF59AC77),
+          backgroundColor: const Color(0xFF59AC77),
           bottom: const TabBar(
             isScrollable: true,
             labelColor: Color(0xFF59AC77),

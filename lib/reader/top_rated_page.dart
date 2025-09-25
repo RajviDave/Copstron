@@ -19,7 +19,13 @@ class _TopRatedPageState extends State<TopRatedPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Top Rated Books'),
+        title: const Text(
+          'Top Rated Books',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF59AC77),
         elevation: 0,
       ),

@@ -308,7 +308,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           side: BorderSide(color: primaryColor.withOpacity(0.3), width: 1.5),
                         ),
                         child: const Text(
-                          'LOGIN OR SIGNUP with Google',
+                          'SIGNUP with Google',
                           style: TextStyle(
                             color: Colors.black87,
                             fontSize: 16,

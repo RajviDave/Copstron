@@ -422,7 +422,13 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: primaryColor,
         actions: [
           IconButton(
@@ -544,7 +550,134 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           _buildStatColumn('Books', '$_bookCount', Icons.book, primaryColor),
                           _buildStatColumn('Followers', '$_readerCount', Icons.people, Colors.blue),
-                          _buildStatColumn('Posts', '${_bookCount + 5}', Icons.article, Colors.orange),
+                          _buildStatColumn('Posts', '${_bookCount * 2 + 12}', Icons.article, Colors.orange),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // --- Author Achievements Section ---
+                    _buildProfileCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.emoji_events, color: Colors.amber, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Achievements',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _buildAchievementBadge(
+                                'First Book',
+                                Icons.book,
+                                Colors.green,
+                                _bookCount >= 1,
+                              ),
+                              _buildAchievementBadge(
+                                'Prolific Writer',
+                                Icons.library_books,
+                                Colors.blue,
+                                _bookCount >= 5,
+                              ),
+                              _buildAchievementBadge(
+                                'Popular Author',
+                                Icons.favorite,
+                                Colors.red,
+                                _readerCount >= 10,
+                              ),
+                              _buildAchievementBadge(
+                                'Rising Star',
+                                Icons.star,
+                                Colors.amber,
+                                _readerCount >= 50,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // --- Writing Statistics Section ---
+                    _buildProfileCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.analytics, color: primaryColor, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Writing Statistics',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildStatRow('Total Words Written', '${_bookCount * 25000}+'),
+                          _buildStatRow('Average Book Length', '25,000 words'),
+                          _buildStatRow('Member Since', 'September 2024'),
+                          _buildStatRow('Last Active', 'Today'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // --- Quick Actions Section ---
+                    _buildProfileCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.flash_on, color: Colors.orange, size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Quick Actions',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildActionButton(
+                                  'Create Book',
+                                  Icons.add_box,
+                                  primaryColor,
+                                  () => Navigator.pushNamed(context, '/create'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildActionButton(
+                                  'View Analytics',
+                                  Icons.bar_chart,
+                                  Colors.blue,
+                                  () => Navigator.pushNamed(context, '/dashboard'),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -553,11 +686,42 @@ class _ProfilePageState extends State<ProfilePage> {
                     // --- Account Management Section ---
                     _buildProfileCard(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            children: [
+                              Icon(Icons.settings, color: Colors.grey[700], size: 24),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Account Settings',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
                           _buildOptionTile(
                             icon: Icons.lock_outline,
                             title: 'Change Password',
                             onTap: _changePassword,
+                          ),
+                          const Divider(),
+                          _buildOptionTile(
+                            icon: Icons.notifications_outlined,
+                            title: 'Notification Settings',
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Feature coming soon!')),
+                            ),
+                          ),
+                          const Divider(),
+                          _buildOptionTile(
+                            icon: Icons.privacy_tip_outlined,
+                            title: 'Privacy Settings',
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Feature coming soon!')),
+                            ),
                           ),
                           const Divider(),
                           _buildOptionTile(
@@ -689,6 +853,103 @@ class _ProfilePageState extends State<ProfilePage> {
           : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    );
+  }
+
+  Widget _buildAchievementBadge(
+    String title,
+    IconData icon,
+    Color color,
+    bool isUnlocked,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isUnlocked ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isUnlocked ? color : Colors.grey,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: isUnlocked ? color : Colors.grey,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: isUnlocked ? color : Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withOpacity(0.3)),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 24),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

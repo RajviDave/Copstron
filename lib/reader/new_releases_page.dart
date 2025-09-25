@@ -19,7 +19,13 @@ class _NewReleasesPageState extends State<NewReleasesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Releases'),
+        title: const Text(
+          'New Releases',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF59AC77),
         elevation: 0,
       ),

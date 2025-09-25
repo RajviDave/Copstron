@@ -41,7 +41,13 @@ class _ExplorePageState extends State<ExplorePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Explore Books'),
+        title: const Text(
+          'Explore Books',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF59AC77),
         elevation: 0,
       ),

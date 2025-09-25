@@ -21,7 +21,13 @@ class _GenreBooksPageState extends State<GenreBooksPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.genre} Books'),
+        title: Text(
+          '${widget.genre} Books',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: const Color(0xFF59AC77),
         elevation: 0,
       ),

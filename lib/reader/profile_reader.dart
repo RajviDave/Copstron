@@ -315,8 +315,14 @@ class _ProfileReaderState extends State<ProfileReader> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('My Profile'),
-        backgroundColor: const Color(0xFF0d4b34),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF59AC77),
         actions: [
           if (_isEditing)
             TextButton(
@@ -400,7 +406,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                                     onTap: _pickImage,
                                     child: const Icon(
                                       Icons.camera_alt,
-                                      color: Color(0xFF0d4b34),
+                                      color: Color(0xFF59AC77),
                                       size: 20,
                                     ),
                                   ),
@@ -487,7 +493,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildStatCard('Books Read', '12', Icons.book, const Color(0xFF0d4b34)),
+                              _buildStatCard('Books Read', '12', Icons.book, const Color(0xFF59AC77)),
                               _buildStatCard('Saved', '8', Icons.bookmark, Colors.blue),
                               _buildStatCard('Following', '5', Icons.people, Colors.orange),
                             ],
@@ -501,7 +507,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                       ListTile(
                         leading: const Icon(
                           Icons.notifications_none,
-                          color: Color(0xFF0d4b34),
+                          color: Color(0xFF59AC77),
                         ),
                         title: const Text('Push Notifications'),
                         trailing: Switch(
@@ -512,14 +518,14 @@ class _ProfileReaderState extends State<ProfileReader> {
                             });
                             // TODO: Save notification preference
                           },
-                          activeThumbColor: const Color(0xFF0d4b34),
+                          activeThumbColor: const Color(0xFF59AC77),
                         ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         leading: const Icon(
                           Icons.lock_outline,
-                          color: Color(0xFF0d4b34),
+                          color: Color(0xFF59AC77),
                         ),
                         title: const Text('Change Password'),
                         trailing: const Icon(
@@ -532,7 +538,7 @@ class _ProfileReaderState extends State<ProfileReader> {
                       ListTile(
                         leading: const Icon(
                           Icons.logout,
-                          color: Color(0xFF0d4b34),
+                          color: Color(0xFF59AC77),
                         ),
                         title: const Text('Logout'),
                         onTap: _logout,
@@ -640,7 +646,7 @@ class _ProfileReaderState extends State<ProfileReader> {
     return Column(
       children: [
         ListTile(
-          leading: Icon(icon, color: const Color(0xFF0d4b34)),
+          leading: Icon(icon, color: const Color(0xFF59AC77)),
           title: Text(title),
           trailing:
               trailingWidget ??
@@ -667,7 +673,7 @@ class _ProfileReaderState extends State<ProfileReader> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF0d4b34),
+            color: Color(0xFF59AC77),
           ),
         ),
         const SizedBox(height: 4),

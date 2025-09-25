@@ -32,10 +32,15 @@ class _LibraryReaderState extends State<LibraryReader> with SingleTickerProvider
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Library'),
+        title: const Text(
+          'My Library',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF59AC77),
+        backgroundColor: const Color(0xFF59AC77),
         bottom: TabBar(
           controller: _tabController,
           labelColor: const Color(0xFF59AC77),
